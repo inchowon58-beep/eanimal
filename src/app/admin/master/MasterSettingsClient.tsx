@@ -16,8 +16,6 @@ interface SiteForm {
   address: string;
   businessNumber: string;
   representative: string;
-  chairmanTitle: string;
-  chairmanPhoto: string;
   imageCdn: string;
   imageCount: number;
   supportBase: string;
@@ -39,8 +37,6 @@ const emptySiteForm: SiteForm = {
   address: "",
   businessNumber: "",
   representative: "",
-  chairmanTitle: "",
-  chairmanPhoto: "/chairman.png",
   imageCdn: "",
   imageCount: 20,
   supportBase: "",
@@ -90,8 +86,6 @@ export default function MasterSettingsClient() {
       address: settings.address || "",
       businessNumber: settings.businessNumber || "",
       representative: settings.representative || "",
-      chairmanTitle: settings.chairmanTitle || "",
-      chairmanPhoto: settings.chairmanPhoto || "/chairman.png",
       imageCdn: settings.imageCdn || "",
       imageCount: settings.imageCount || 20,
       supportBase: settings.supportBase || "",
@@ -253,8 +247,6 @@ export default function MasterSettingsClient() {
               {siteField("사이트 URL", "url")}
               {siteField("슬로건", "tagline")}
               {siteField("사이트 설명", "description", { rows: 3 })}
-              {siteField("위원장 직함", "chairmanTitle")}
-              {siteField("위원장 사진 경로", "chairmanPhoto")}
               {siteField("주요 과정 1", "supportBase")}
               {siteField("주요 과정 2", "supportExtra")}
               {siteField("학원 정보 규모", "supportMax")}

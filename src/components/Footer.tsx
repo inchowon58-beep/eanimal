@@ -27,7 +27,6 @@ export default function Footer({ isLoggedIn = false }: FooterProps) {
           <div className="grid md:grid-cols-3 gap-10">
             <div>
               <h3 className="text-xl font-bold mb-1">{site.brandName}</h3>
-              <p className="text-sm text-orange mb-2">{site.chairmanTitle}</p>
               <p className="text-sm text-gray-400 mb-4">{site.companyName}</p>
               <p className="text-gray-300 text-sm leading-relaxed mb-4">
                 {site.description}

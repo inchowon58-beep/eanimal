@@ -63,27 +63,15 @@ export default async function GuidePage({ params }: Props) {
           answer: f.answer
             .replace(/\{\{brandName\}\}/g, config.brandName)
             .replace(/\{\{phone\}\}/g, config.phone)
-            .replace(/\{\{supportMax\}\}/g, config.supportMax)
-            .replace(/\{\{chairmanTitle\}\}/g, config.chairmanTitle),
+            .replace(/\{\{supportMax\}\}/g, config.supportMax),
         }));
 
   return (
     <article className="bg-cream min-h-screen">
       <div className="bg-dark text-white py-8">
-        <div className="max-w-4xl mx-auto px-4 flex items-center gap-4">
-          <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-orange flex-shrink-0 bg-white">
-            <Image
-              src={config.chairmanPhoto}
-              alt={config.chairmanTitle}
-              fill
-              className="object-cover object-top"
-            />
-          </div>
-          <div>
-            <p className="font-bold">{config.brandName}</p>
-            <p className="text-sm text-gray-300">{config.chairmanTitle}</p>
-            <p className="text-sm text-orange">애견미용학원 정보 · 자격증 과정 안내</p>
-          </div>
+        <div className="max-w-4xl mx-auto px-4">
+          <p className="font-bold text-lg">{config.brandName}</p>
+          <p className="text-sm text-orange mt-1">애견미용학원 정보 · 자격증 과정 안내</p>
         </div>
       </div>
 
@@ -145,7 +133,7 @@ export default async function GuidePage({ params }: Props) {
         <div className="mt-10 text-center bg-dark rounded-2xl p-8 text-white">
           <h2 className="text-xl font-bold mb-3">{page.keyword} 상담</h2>
           <p className="text-gray-300 mb-6 text-sm">
-            {config.brandName} · 무료 학원 상담 · {config.chairmanTitle}
+            {config.brandName} · 무료 학원 상담 · {config.tagline}
           </p>
           <a
             href={`tel:${phoneToTel(config.phone)}`}

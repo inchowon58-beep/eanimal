@@ -47,14 +47,14 @@ export default async function SupportSection() {
         </div>
 
         <div className="mt-16 text-center">
-          <p className="text-gray-500 mb-2">{site.chairmanTitle} 검증 정보</p>
+          <p className="text-gray-500 mb-2">애견미용학원 정보 포털</p>
           <h3 className="text-2xl font-bold text-dark">
-            믿을 수 있는 애견미용학원 포털{" "}
+            믿을 수 있는 애견미용학원 정보{" "}
             <span className="text-orange">{site.brandName}</span>
           </h3>
           <p className="mt-4 text-gray-600 max-w-2xl mx-auto">
             학원 선택 시 정보의 신뢰성이 가장 중요합니다.
-            {site.brandName}는 검증된 학원 정보만 제공하며, 학원 등록 요청도 받고 있습니다.
+            {site.brandName}는 전국 학원 정보를 비교·안내하며, 학원 등록 요청도 받고 있습니다.
           </p>
         </div>
       </div>

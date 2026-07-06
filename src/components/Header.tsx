@@ -28,7 +28,7 @@ export default function Header() {
               {site.brandName}
             </p>
             <p className="text-[11px] sm:text-xs text-gray-500 leading-tight mt-0.5">
-              {site.chairmanTitle}
+              {site.tagline}
             </p>
           </Link>
 

@@ -29,7 +29,6 @@ const CONTENT_RULES = `
 - 키워드를 자연스럽게 본문 전체에 5~8회 포함
 - 업체명·전화번호는 반드시 {{brandName}}, {{phone}} 등 토큰으로만 표기 (직접 입력 금지)
 - 애견미용학원, 애견미용사·애견미용관리사 자격증, 펫그루밍 교육 관점으로 작성
-- {{chairmanTitle}} 검증 정보 포털이라는 신뢰감을 자연스럽게 반영
 - 신뢰감 있는 전문가 톤, 허위·과장 금지
 - h2, h3, p, ul 태그만 사용 (img 태그 직접 사용 금지)
 - 본문 순수 텍스트 기준 **2800자 이상** (짧으면 안 됨)
@@ -51,7 +50,7 @@ const WRITING_ANGLES = [
   "직장인·주부 등 시간대별 수업(주말·야간) 선택을 중심으로",
   "애견미용사와 애견미용관리사 과정 차이와 진로를 중심으로",
   "수강료·실습 비율·1:1 지도 여부 등 학원 비교 포인트를 중심으로",
-  "한국애견연맹·반려문화 증진 관점에서 신뢰할 수 있는 학원 선택을 중심으로",
+  "지역별 학원 특성과 통학·실습 일정을 중심으로",
 ];
 
 const TITLE_STYLE_HINTS = [
@@ -60,7 +59,6 @@ const TITLE_STYLE_HINTS = [
   "창업·취업 연계형",
   "수강료·커리큘럼 안내형",
   "지역 특화 학원 정보형",
-  "위원장 검증·신뢰 정보형",
   "기초·실무 단계별 안내형",
   "펫그루밍·미용 실무형",
 ];
@@ -112,7 +110,6 @@ export async function generateSeoContent({
 
 사이트 정보 (본문에 아래 토큰을 그대로 사용하세요):
 - 상호: {{brandName}} ({{companyName}})
-- 검증: {{chairmanTitle}}
 - 연락처: {{phone}}
 - 과정: {{supportBase}}, {{supportExtra}}, 전국 {{supportMax}} 정보
 - 특징: 검증된 학원 정보, 무료 학원 상담·매칭, 자격증·실습·창업 과정 안내, 학원 등록·제휴
@@ -192,7 +189,7 @@ export function buildDefaultFaqs(keyword: string, site: SiteConfig): SeoFaq[] {
       },
       {
         question: `${keyword}에서 애견미용사 자격증을 취득할 수 있나요?`,
-        answer: `네. {{brandName}}은 국가자격 대비 과정을 운영하는 학원 정보를 제공합니다. {{chairmanTitle}} 검증 정보를 바탕으로 신뢰할 수 있는 학원을 안내하며, {{phone}}로 상담 가능합니다.`,
+        answer: `네. {{brandName}}은 국가자격 대비 과정을 운영하는 학원 정보를 제공합니다. 검증된 정보를 바탕으로 신뢰할 수 있는 학원을 안내하며, {{phone}}로 상담 가능합니다.`,
       },
       {
         question: `${keyword} 상담은 어떻게 하나요?`,
@@ -202,7 +199,7 @@ export function buildDefaultFaqs(keyword: string, site: SiteConfig): SeoFaq[] {
     [
       {
         question: `${regionNote}${keyword} 추천 기준이 있나요?`,
-        answer: `{{brandName}}은 실습 환경, 강사 경력, 자격증 합격률, 수강료 투명성 등을 기준으로 학원을 비교합니다. {{chairmanTitle}}이 검증하는 정보 포털로 신뢰할 수 있습니다.`,
+        answer: `{{brandName}}은 실습 환경, 강사 경력, 자격증 합격률, 수강료 투명성 등을 기준으로 학원을 비교합니다. 신뢰할 수 있는 정보 포털로 안내해 드립니다.`,
       },
       {
         question: `${keyword} 수업 기간은 얼마나 걸리나요?`,
@@ -241,7 +238,7 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
     return `
 <h2>${core} — {{brandName}} 맞춤 안내</h2>
 <p>{{companyName}} {{brandName}}은 ${region ? `${region}을 포함한 ` : ""}전국 애견미용학원 정보를 제공하며, ${core} 관련 문의가 많은 편입니다. 학원마다 실습 비율, 자격증 과정, 수강료 구성이 달라 동일 기간이라도 커리큘럼 차이가 큽니다.</p>
-<p>{{chairmanTitle}}이 검증하는 정보 포털로, {{phone}} 상담을 통해 목표에 맞는 학원을 비교·추천해 드립니다.</p>
+<p>{{brandName}} 정보 포털로, {{phone}} 상담을 통해 목표에 맞는 학원을 비교·추천해 드립니다.</p>
 {{image1}}
 
 <h2>${keyword} 학원 선택 시 확인할 항목</h2>
@@ -268,7 +265,7 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
 <p>학원 운영자는 학원정보 등록요청·제휴문의도 {{phone}}로 가능합니다.</p>
 
 <h2>신뢰할 수 있는 정보</h2>
-<p>반려견 미용 교육 시장은 정보의 질이 수강 결과에 큰 영향을 줍니다. {{chairmanTitle}} {{brandName}}은 검증된 학원 정보만 제공합니다.</p>
+<p>반려견 미용 교육 시장은 정보의 질이 수강 결과에 큰 영향을 줍니다. {{brandName}}은 신뢰할 수 있는 학원 정보만 제공합니다.</p>
 <p>과장된 합격률·저렴한 수강료만 내세우는 학원보다, 실습 환경과 커리큘럼을 투명히 공개하는 곳을 권합니다.</p>
 {{image3}}
 
@@ -298,8 +295,8 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
 </ul>
 {{image2}}
 
-<h2>{{chairmanTitle}} 검증 정보</h2>
-<p>한국애견연맹 반려문화증진위원회 관점에서, 반려견 복지와 올바른 미용 교육을 제공하는 학원을 우선 안내합니다.</p>
+<h2>신뢰할 수 있는 학원 정보</h2>
+<p>반려견 복지와 올바른 미용 교육을 제공하는 학원을 우선 안내합니다.</p>
 <p>{{brandName}}은 {{phone}}으로 학원 등록·제휴·수강 상담을 받습니다.</p>
 
 <h2>지금 상담 받기</h2>
@@ -325,7 +322,7 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
 <p>{{brandName}} 안내 자료는 위 항목을 구분해 작성하므로 학원 간 비교가 수월합니다.</p>
 
 <h2>전국 {{supportMax}} 정보</h2>
-<p>{{brandName}}은 전국 애견미용학원 정보를 수집·검증합니다. {{chairmanTitle}}의 신뢰를 바탕으로 학원 등록 요청도 받고 있습니다.</p>
+<p>{{brandName}}은 전국 애견미용학원 정보를 수집·안내합니다. 학원 등록 요청도 받고 있습니다.</p>
 {{image2}}
 
 <h2>${region || "지역"} 특성을 고려한 선택</h2>
@@ -341,7 +338,7 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
     return `
 <h2>${core} — 입문자를 위한 실전 가이드</h2>
 <p>애견미용 학원 선택을 미루면 목표 달성 시기가 늦어질 수 있습니다. {{brandName}}은 {{phone}} 접수 후 빠르게 맞춤 학원 정보를 안내해 드립니다.</p>
-<p>{{chairmanTitle}} {{brandName}}은 검증된 정보만 제공하며, 학원정보 등록요청·제휴문의도 {{phone}}로 받습니다.</p>
+<p>{{brandName}}은 신뢰할 수 있는 정보만 제공하며, 학원정보 등록요청·제휴문의도 {{phone}}로 받습니다.</p>
 {{image1}}
 
 <h2>수강 전 3가지 확인</h2>
@@ -357,7 +354,7 @@ const FALLBACK_VARIANTS: FallbackBuilder[] = [
 {{image2}}
 
 <h2>왜 {{brandName}}인가</h2>
-<p>학원 정보, 과정 비교, 무료 상담, 등록·제휴를 한 곳에서 진행할 수 있습니다. {{chairmanTitle}} 검증으로 신뢰할 수 있는 정보를 제공합니다.</p>
+<p>학원 정보, 과정 비교, 무료 상담, 등록·제휴를 한 곳에서 진행할 수 있습니다. {{brandName}}에서 신뢰할 수 있는 정보를 제공합니다.</p>
 {{image3}}
 
 <h2>${keyword} 무료 상담</h2>
@@ -384,7 +381,7 @@ function generateFallbackContent(
   ];
   const descVariants = [
     (k: string, r: string | null) =>
-      `${buildSeoCorePhrase(k)} 무료 학원 상담, {{supportBase}}·{{supportExtra}} 과정 안내. {{brandName}} {{chairmanTitle}} 검증 정보.`,
+      `${buildSeoCorePhrase(k)} 무료 학원 상담, {{supportBase}}·{{supportExtra}} 과정 안내. {{brandName}} 애견미용학원 정보.`,
     (k: string, r: string | null) =>
       `${r ? `${r} ` : ""}${extractServicePhrase(k, r)} 맞춤 학원 추천. 전국 {{supportMax}}, {{brandName}}.`,
     (k: string) =>

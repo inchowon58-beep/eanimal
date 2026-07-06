@@ -50,7 +50,6 @@ const TOKEN_KEYS: (keyof SiteConfig)[] = [
   "address",
   "businessNumber",
   "representative",
-  "chairmanTitle",
   "supportBase",
   "supportExtra",
   "supportMax",

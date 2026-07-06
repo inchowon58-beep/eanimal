@@ -18,8 +18,6 @@ const SITE_FIELDS = [
   "address",
   "businessNumber",
   "representative",
-  "chairmanTitle",
-  "chairmanPhoto",
   "imageCdn",
   "imageCount",
   "supportBase",
