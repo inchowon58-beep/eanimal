@@ -126,8 +126,14 @@ async function syncEndpoint(
       mapped.push(place);
     }
 
-    for (let i = 0; i < mapped.length; i += 200) {
-      const chunk = mapped.slice(i, i + 200);
+    // 같은 페이지에 local_id 중복이 있으면 Postgres upsert가 실패함
+    const deduped = Array.from(
+      new Map(mapped.map((p) => [p.local_id, p])).values()
+    );
+    skipped += mapped.length - deduped.length;
+
+    for (let i = 0; i < deduped.length; i += 200) {
+      const chunk = deduped.slice(i, i + 200);
       const { error } = await supabase.from("places").upsert(chunk, {
         onConflict: "local_id",
         ignoreDuplicates: false,
@@ -140,7 +146,7 @@ async function syncEndpoint(
 
     fetchedTotal += page.rows.length;
     options.onProgress?.(
-      `${endpoint.category} page ${pageNo} 완료 (+${mapped.length}, ${fetchedTotal}/${totalCount || "?"})`
+      `${endpoint.category} page ${pageNo} 완료 (+${deduped.length}, ${fetchedTotal}/${totalCount || "?"})`
     );
 
     // API가 pageSize보다 적게 줘도 totalCount가 남으면 다음 페이지 계속
