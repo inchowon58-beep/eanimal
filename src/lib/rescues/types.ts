@@ -2,6 +2,7 @@ export interface RescuedAnimal {
   id: string;
   desertion_no: string;
   image_url: string | null;
+  has_image?: boolean;
   happen_dt: string | null;
   happen_place: string | null;
   kind_cd: string | null;

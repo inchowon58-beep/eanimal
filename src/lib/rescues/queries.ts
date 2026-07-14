@@ -27,6 +27,7 @@ export async function listRescues(opts: {
   let query = supabase
     .from("rescued_animals")
     .select("*", { count: "exact" })
+    .order("has_image", { ascending: false })
     .order("happen_dt", { ascending: false })
     .range(from, to);
 

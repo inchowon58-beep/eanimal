@@ -199,9 +199,12 @@ function mapRescueRow(row: Record<string, unknown>) {
   const parsed = parseRegionFromAddress(care_addr || happen_place);
   const org = pickStr(row, ["orgNm", "org_nm"]);
 
+  const image_url = pickImageUrl(row);
+
   return {
     desertion_no,
-    image_url: pickImageUrl(row),
+    image_url,
+    has_image: Boolean(image_url),
     happen_dt: pickStr(row, ["happenDt", "happen_dt"]),
     happen_place,
     kind_cd: pickStr(row, ["kindCd", "kind_cd"]),

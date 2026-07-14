@@ -4,6 +4,7 @@ export interface PetTravelPlace {
   content_type_id: string | null;
   title: string;
   image_url: string | null;
+  has_image?: boolean;
   address: string | null;
   address_detail: string | null;
   tel: string | null;

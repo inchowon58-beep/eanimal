@@ -274,13 +274,16 @@ function mapTravelListRow(row: Record<string, unknown>) {
     normalizeSido(parsed.sido) ||
     parsed.sido;
 
+  const image_url =
+    pickStr(row, ["firstimage", "firstImage"]) ||
+    pickStr(row, ["firstimage2", "firstImage2"]);
+
   return {
     content_id,
     content_type_id: pickStr(row, ["contenttypeid", "contentTypeId"]),
     title,
-    image_url:
-      pickStr(row, ["firstimage", "firstImage"]) ||
-      pickStr(row, ["firstimage2", "firstImage2"]),
+    image_url,
+    has_image: Boolean(image_url),
     address,
     address_detail,
     tel: pickStr(row, ["tel"]),

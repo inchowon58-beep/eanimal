@@ -27,6 +27,7 @@ export async function listTravel(opts: {
   let query = supabase
     .from("pet_travel")
     .select("*", { count: "exact" })
+    .order("has_image", { ascending: false })
     .order("title", { ascending: true })
     .range(from, to);
 
