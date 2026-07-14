@@ -253,7 +253,7 @@ async function applyIncremental(
   const { data: existing, error } = await supabase
     .from("places")
     .select(
-      "local_id, category, title, status, address_road, address_jibun, phone, sido, sigungu"
+      "local_id, category, title, status, address_road, address_jibun, phone, sido, sigungu, is_inactive"
     )
     .in("local_id", ids);
 
@@ -299,6 +299,7 @@ function isSamePlace(
     a.category === b.category &&
     a.title === b.title &&
     a.status === b.status &&
+    Boolean(a.is_inactive) === Boolean(b.is_inactive) &&
     (a.address_road || null) === (b.address_road || null) &&
     (a.address_jibun || null) === (b.address_jibun || null) &&
     (a.phone || null) === (b.phone || null) &&

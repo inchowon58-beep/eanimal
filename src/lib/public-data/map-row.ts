@@ -4,6 +4,7 @@ import {
   parseRegionFromAddress,
   pickField,
 } from "@/lib/public-data/normalize";
+import { isInactiveStatus } from "@/lib/places/status";
 
 export interface PlaceUpsertRow {
   local_id: string;
@@ -15,6 +16,7 @@ export interface PlaceUpsertRow {
   phone: string | null;
   sido: string | null;
   sigungu: string | null;
+  is_inactive: boolean;
   updated_at: string;
 }
 
@@ -93,6 +95,7 @@ export function mapPublicRowToPlace(
     phone,
     sido,
     sigungu,
+    is_inactive: isInactiveStatus(status),
     updated_at: new Date().toISOString(),
   };
 }

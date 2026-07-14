@@ -59,6 +59,7 @@ export async function listPlaces(
       "id, local_id, category, title, status, address_road, address_jibun, phone, sido, sigungu, updated_at",
       { count: "exact" }
     )
+    .order("is_inactive", { ascending: true })
     .order("title", { ascending: true })
     .range(from, to);
 

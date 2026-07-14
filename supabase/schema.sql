@@ -16,6 +16,7 @@ create table if not exists public.places (
   phone text,
   sido text,
   sigungu text,
+  is_inactive boolean not null default false,
   updated_at timestamptz not null default now(),
   constraint places_local_id_unique unique (local_id),
   constraint places_category_check check (
@@ -27,6 +28,8 @@ create index if not exists places_sido_idx on public.places (sido);
 create index if not exists places_sigungu_idx on public.places (sigungu);
 create index if not exists places_category_idx on public.places (category);
 create index if not exists places_status_idx on public.places (status);
+create index if not exists places_inactive_title_idx
+  on public.places (is_inactive, title);
 create index if not exists places_sido_sigungu_category_idx
   on public.places (sido, sigungu, category);
 
