@@ -21,9 +21,11 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const days = Number(url.searchParams.get("days") || 14);
   const maxPages = url.searchParams.get("maxPages");
+  const startPage = url.searchParams.get("startPage");
   const result = await syncRescuedAnimals({
     days,
     maxPages: maxPages ? Number(maxPages) : undefined,
+    startPage: startPage ? Number(startPage) : undefined,
   });
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });
 }

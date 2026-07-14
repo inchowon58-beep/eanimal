@@ -63,6 +63,7 @@ function pickImageUrl(row: Record<string, unknown>): string | null {
 export async function syncRescuedAnimals(opts?: {
   days?: number;
   maxPages?: number;
+  startPage?: number;
 }): Promise<RescueSyncResult> {
   const started = Date.now();
   const supabase = getSupabaseService();
@@ -79,12 +80,16 @@ export async function syncRescuedAnimals(opts?: {
 
   const days = opts?.days ?? 14;
   const maxPages = opts?.maxPages ?? Number.POSITIVE_INFINITY;
+  const startPage = Math.max(1, opts?.startPage ?? 1);
+  const endPage = Number.isFinite(maxPages)
+    ? startPage + maxPages - 1
+    : Number.POSITIVE_INFINITY;
   const end = new Date();
   const start = new Date();
   start.setDate(end.getDate() - days);
   const serviceKey = getEncodedServiceKey();
 
-  let pageNo = 1;
+  let pageNo = startPage;
   let upserted = 0;
   let withImage = 0;
   let pages = 0;
@@ -121,7 +126,7 @@ export async function syncRescuedAnimals(opts?: {
   }
 
   try {
-    while (pageNo <= maxPages) {
+    while (pageNo <= endPage) {
       const qs = [
         `serviceKey=${serviceKey}`,
         `bgnde=${yyyymmdd(start)}`,
