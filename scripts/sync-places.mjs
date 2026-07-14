@@ -104,14 +104,17 @@ async function main() {
   );
 
   const maxPages = Number(process.env.MAX_PAGES || 0) || Infinity;
-  const pageSize = Number(process.env.PAGE_SIZE || 1000);
+  const pageSize = Math.min(Number(process.env.PAGE_SIZE || 100), 100);
+  const startPage = Math.max(Number(process.env.START_PAGE || 1), 1);
   const only = process.env.CATEGORY;
   const targets = ENDPOINTS.filter((e) => !only || e.category === only);
 
   let upserted = 0;
   for (const ep of targets) {
     console.log(`== ${ep.category}`);
-    for (let page = 1; page <= maxPages; page++) {
+    let fetched = (startPage - 1) * pageSize;
+    let pagesDone = 0;
+    for (let page = startPage; pagesDone < maxPages; page++, pagesDone++) {
       const { rows, totalCount } = await fetchPage(ep.path, page, pageSize, serviceKey);
       if (!rows.length) break;
       const mapped = rows
@@ -125,9 +128,12 @@ async function main() {
         if (error) throw error;
         upserted += chunk.length;
       }
-      console.log(`  page ${page}: +${mapped.length} (totalCount=${totalCount})`);
-      if (rows.length < pageSize) break;
-      if (totalCount && page * pageSize >= totalCount) break;
+      fetched += rows.length;
+      console.log(
+        `  page ${page}: +${mapped.length} (${fetched}/${totalCount || "?"})`
+      );
+      if (totalCount && fetched >= totalCount) break;
+      if (!totalCount && rows.length < pageSize) break;
     }
   }
   console.log(`done. upserted=${upserted}`);

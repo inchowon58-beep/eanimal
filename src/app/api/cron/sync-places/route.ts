@@ -35,11 +35,13 @@ async function handle(req: Request) {
   const url = new URL(req.url);
   const maxPages = url.searchParams.get("maxPages");
   const pageSize = url.searchParams.get("pageSize");
+  const startPage = url.searchParams.get("startPage");
 
   const result = await syncPlacesFromPublicData({
     categories: parseCategories(req),
     maxPages: maxPages ? Number(maxPages) : undefined,
     pageSize: pageSize ? Number(pageSize) : undefined,
+    startPage: startPage ? Number(startPage) : undefined,
   });
 
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });

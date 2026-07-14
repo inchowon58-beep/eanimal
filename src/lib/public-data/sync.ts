@@ -9,8 +9,11 @@ import type { PlaceCategory } from "@/lib/site";
 
 export interface SyncOptions {
   categories?: PlaceCategory[];
-  /** 카테고리당 최대 페이지 (기본 전체). 개발 시 제한용 */
+  /** 카테고리당 최대 페이지 수 (기본 전체). 개발·배치 동기화용 */
   maxPages?: number;
+  /** 시작 페이지 (1부터). 타임아웃 대비 이어서 동기화할 때 사용 */
+  startPage?: number;
+  /** 공공 API는 보통 페이지당 최대 100건 */
   pageSize?: number;
   onProgress?: (msg: string) => void;
 }
@@ -86,21 +89,26 @@ async function syncEndpoint(
   supabase: NonNullable<ReturnType<typeof getSupabaseService>>,
   options: SyncOptions
 ) {
-  const pageSize = options.pageSize ?? 1000;
+  // 공공 API 실측상 page당 ~100건. 过大 pageSize면 조기 종료 버그 유발.
+  const pageSize = Math.min(Math.max(options.pageSize ?? 100, 1), 100);
+  const startPage = Math.max(options.startPage ?? 1, 1);
   const maxPages = options.maxPages ?? Number.POSITIVE_INFINITY;
-  let pageNo = 1;
+  let pageNo = startPage;
+  let pagesDone = 0;
   let upserted = 0;
   let skipped = 0;
   let pages = 0;
   let totalCount = 0;
+  let fetchedTotal = (startPage - 1) * pageSize;
 
-  while (pageNo <= maxPages) {
+  while (pagesDone < maxPages) {
     options.onProgress?.(
       `${endpoint.category} page ${pageNo} 요청 중…`
     );
     const page = await fetchPublicDataPage(endpoint, pageNo, pageSize);
     totalCount = page.totalCount || totalCount;
     pages += 1;
+    pagesDone += 1;
 
     if (page.rows.length === 0) break;
 
@@ -118,7 +126,6 @@ async function syncEndpoint(
       mapped.push(place);
     }
 
-    // UPSERT in chunks
     for (let i = 0; i < mapped.length; i += 200) {
       const chunk = mapped.slice(i, i + 200);
       const { error } = await supabase.from("places").upsert(chunk, {
@@ -131,13 +138,14 @@ async function syncEndpoint(
       upserted += chunk.length;
     }
 
+    fetchedTotal += page.rows.length;
     options.onProgress?.(
-      `${endpoint.category} page ${pageNo} 완료 (+${mapped.length})`
+      `${endpoint.category} page ${pageNo} 완료 (+${mapped.length}, ${fetchedTotal}/${totalCount || "?"})`
     );
 
-    const fetched = pageNo * pageSize;
-    if (page.rows.length < pageSize) break;
-    if (totalCount > 0 && fetched >= totalCount) break;
+    // API가 pageSize보다 적게 줘도 totalCount가 남으면 다음 페이지 계속
+    if (totalCount > 0 && fetchedTotal >= totalCount) break;
+    if (totalCount === 0 && page.rows.length < pageSize) break;
     pageNo += 1;
   }
 
