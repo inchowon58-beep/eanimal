@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import RemoteImage from "@/components/media/RemoteImage";
+import ListPagination from "@/components/ui/ListPagination";
 import { listTravel } from "@/lib/travel/queries";
 import { buildTravelListSeo } from "@/lib/travel/seo";
 import { SITE } from "@/lib/site";
@@ -89,27 +90,12 @@ export default async function TravelPage({ searchParams }: Props) {
         <p className="mt-10 text-center text-sm text-muted-fg">표시할 장소가 없습니다. 동기화 후 확인해 주세요.</p>
       )}
 
-      {totalPages > 1 && (
-        <nav className="mt-8 flex flex-wrap justify-center gap-2">
-          {Array.from({ length: Math.min(totalPages, 20) }, (_, i) => i + 1).map((n) => {
-            const qs = new URLSearchParams();
-            if (sido) qs.set("sido", sido);
-            if (q) qs.set("q", q);
-            qs.set("page", String(n));
-            return (
-              <Link
-                key={n}
-                href={`/travel?${qs}`}
-                className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg text-sm ${
-                  n === page ? "bg-accent font-semibold text-accent-fg" : "border border-border bg-card text-muted-fg"
-                }`}
-              >
-                {n}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        basePath="/travel"
+        params={{ sido, q }}
+      />
 
       <section className="seo-body mt-12 rounded-xl border border-border bg-card p-5 sm:p-8">
         <h2 className="font-display text-lg font-semibold">반려동물 동반여행 안내</h2>

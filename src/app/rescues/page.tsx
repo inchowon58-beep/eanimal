@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import RemoteImage from "@/components/media/RemoteImage";
+import ListPagination from "@/components/ui/ListPagination";
 import { listRescues } from "@/lib/rescues/queries";
 import { buildRescueListSeo } from "@/lib/rescues/seo";
 import { formatHappenDt, sexLabel } from "@/lib/rescues/types";
@@ -91,27 +92,12 @@ export default async function RescuesPage({ searchParams }: Props) {
         </p>
       )}
 
-      {totalPages > 1 && (
-        <nav className="mt-8 flex flex-wrap justify-center gap-2">
-          {Array.from({ length: Math.min(totalPages, 20) }, (_, i) => i + 1).map((n) => {
-            const qs = new URLSearchParams();
-            if (sido) qs.set("sido", sido);
-            if (q) qs.set("q", q);
-            qs.set("page", String(n));
-            return (
-              <Link
-                key={n}
-                href={`/rescues?${qs}`}
-                className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg text-sm ${
-                  n === page ? "bg-accent font-semibold text-accent-fg" : "border border-border bg-card text-muted-fg"
-                }`}
-              >
-                {n}
-              </Link>
-            );
-          })}
-        </nav>
-      )}
+      <ListPagination
+        page={page}
+        totalPages={totalPages}
+        basePath="/rescues"
+        params={{ sido, q }}
+      />
 
       <section className="seo-body mt-12 rounded-xl border border-border bg-card p-5 sm:p-8">
         <h2 className="font-display text-lg font-semibold text-foreground">구조동물 공고 안내</h2>

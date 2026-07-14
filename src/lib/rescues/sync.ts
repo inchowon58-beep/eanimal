@@ -7,8 +7,11 @@ import {
 import { getSupabaseService } from "@/lib/supabase/server";
 import { normalizeSido, parseRegionFromAddress } from "@/lib/public-data/normalize";
 
-const API =
-  "https://apis.data.go.kr/1543061/abandonmentPublicService_v2/abandonmentPublic_v2";
+/** v2 우선, 실패 시 구버전 경로도 시도 */
+const API_CANDIDATES = [
+  "https://apis.data.go.kr/1543061/abandonmentPublicService_v2/abandonmentPublic_v2",
+  "https://apis.data.go.kr/1543061/abandonmentPublicSrvc/abandonmentPublic",
+];
 
 function yyyymmdd(d: Date): string {
   const y = d.getFullYear();
@@ -24,6 +27,37 @@ export interface RescueSyncResult {
   totalCount: number;
   errors: string[];
   durationMs: number;
+  withImage?: number;
+  sampleKeys?: string[];
+  sampleImage?: string | null;
+  activeApi?: string;
+}
+
+function pickImageUrl(row: Record<string, unknown>): string | null {
+  const raw = pickStr(row, [
+    "popfile",
+    "popFile",
+    "filename",
+    "fileName",
+    "popfile1",
+    "popfile2",
+    "PHOTO_URL",
+    "photoUrl",
+    "imageUrl",
+    "imgUrl",
+    "img",
+  ]);
+  if (!raw) return null;
+  // 상대경로면 animal.go.kr 기준으로 보정
+  let url = raw;
+  if (url.startsWith("//")) url = `https:${url}`;
+  else if (url.startsWith("/")) url = `https://www.animal.go.kr${url}`;
+  else if (!/^https?:\/\//i.test(url) && url.includes("files/shelter")) {
+    url = `https://www.animal.go.kr/${url.replace(/^\/+/, "")}`;
+  }
+  // Next/Image·브라우저 혼선 줄이려고 animal.go.kr 는 https 로 통일
+  url = url.replace(/^http:\/\/(www\.)?animal\.go\.kr/i, "https://www.animal.go.kr");
+  return url;
 }
 
 export async function syncRescuedAnimals(opts?: {
@@ -52,9 +86,39 @@ export async function syncRescuedAnimals(opts?: {
 
   let pageNo = 1;
   let upserted = 0;
+  let withImage = 0;
   let pages = 0;
   let totalCount = 0;
   const errors: string[] = [];
+  let sampleKeys: string[] | undefined;
+  let sampleImage: string | null | undefined;
+  let activeApi = API_CANDIDATES[0];
+
+  // 가용 엔드포인트 탐침
+  for (const api of API_CANDIDATES) {
+    try {
+      const qs = [
+        `serviceKey=${serviceKey}`,
+        `bgnde=${yyyymmdd(start)}`,
+        `endde=${yyyymmdd(end)}`,
+        `pageNo=1`,
+        `numOfRows=1`,
+        `_type=json`,
+      ].join("&");
+      const json = await fetchDataGoKrJson(`${api}?${qs}`);
+      const { rows, totalCount: tc } = extractItemRows(json);
+      if (rows.length || tc > 0) {
+        activeApi = api;
+        if (rows[0]) {
+          sampleKeys = Object.keys(rows[0]).slice(0, 40);
+          sampleImage = pickImageUrl(rows[0]);
+        }
+        break;
+      }
+    } catch (e) {
+      errors.push(`probe ${api}: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
 
   try {
     while (pageNo <= maxPages) {
@@ -67,15 +131,22 @@ export async function syncRescuedAnimals(opts?: {
         `_type=json`,
       ].join("&");
 
-      const json = await fetchDataGoKrJson(`${API}?${qs}`);
+      const json = await fetchDataGoKrJson(`${activeApi}?${qs}`);
       const { rows, totalCount: tc } = extractItemRows(json);
       totalCount = tc || totalCount;
       pages += 1;
       if (!rows.length) break;
 
+      if (!sampleKeys && rows[0]) {
+        sampleKeys = Object.keys(rows[0]).slice(0, 40);
+        sampleImage = pickImageUrl(rows[0]);
+      }
+
       const mapped = rows
         .map(mapRescueRow)
         .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+      withImage += mapped.filter((r) => r.image_url).length;
 
       for (let i = 0; i < mapped.length; i += 200) {
         const chunk = mapped.slice(i, i + 200);
@@ -95,13 +166,22 @@ export async function syncRescuedAnimals(opts?: {
     errors.push(e instanceof Error ? e.message : String(e));
   }
 
+  const finalErrors =
+    upserted > 0
+      ? errors.filter((x) => !x.startsWith("probe "))
+      : errors;
+
   return {
-    ok: errors.length === 0,
+    ok: finalErrors.length === 0,
     upserted,
     pages,
     totalCount,
-    errors,
+    errors: finalErrors,
     durationMs: Date.now() - started,
+    withImage,
+    sampleKeys,
+    sampleImage,
+    activeApi,
   };
 }
 
@@ -116,7 +196,7 @@ function mapRescueRow(row: Record<string, unknown>) {
 
   return {
     desertion_no,
-    image_url: pickStr(row, ["popfile", "filename", "popFile"]),
+    image_url: pickImageUrl(row),
     happen_dt: pickStr(row, ["happenDt", "happen_dt"]),
     happen_place,
     kind_cd: pickStr(row, ["kindCd", "kind_cd"]),
