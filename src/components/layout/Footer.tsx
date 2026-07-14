@@ -12,9 +12,20 @@ export default function Footer() {
     <footer className="mt-auto border-t border-border bg-muted/40">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-muted-fg sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="font-medium text-foreground">{SITE.name}</p>
-            <p className="mt-1 max-w-md leading-relaxed">{SITE.description}</p>
+          <div className="flex items-start gap-3">
+            <span
+              className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#c9a86a]/70 bg-gradient-to-br from-[#0b3d3a] via-[#0f5c56] to-[#0a4a45]"
+              aria-hidden
+            >
+              <span className="absolute inset-[10%] rounded-md border border-[#c9a86a]/50" />
+              <span className="relative font-display text-lg font-bold leading-none text-[#f5f0e6]">
+                반
+              </span>
+            </span>
+            <div>
+              <p className="font-medium text-foreground">{SITE.name}</p>
+              <p className="mt-1 max-w-md leading-relaxed">{SITE.description}</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
