@@ -36,6 +36,12 @@ export default function Footer() {
           <Link href="/places" className="hover:text-foreground">
             시설 목록
           </Link>
+          <Link href="/rescues" className="hover:text-foreground">
+            구조공고
+          </Link>
+          <Link href="/travel" className="hover:text-foreground">
+            동반여행
+          </Link>
           <Link href="/regions" className="hover:text-foreground">
             지역
           </Link>

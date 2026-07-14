@@ -1,0 +1,141 @@
+import {
+  extractItemRows,
+  fetchDataGoKrJson,
+  getEncodedServiceKey,
+  pickStr,
+} from "@/lib/public-data/fetch-json";
+import { getSupabaseService } from "@/lib/supabase/server";
+import { normalizeSido, parseRegionFromAddress } from "@/lib/public-data/normalize";
+
+const API =
+  "https://apis.data.go.kr/1543061/abandonmentPublicService_v2/abandonmentPublic_v2";
+
+function yyyymmdd(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}${m}${day}`;
+}
+
+export interface RescueSyncResult {
+  ok: boolean;
+  upserted: number;
+  pages: number;
+  totalCount: number;
+  errors: string[];
+  durationMs: number;
+}
+
+export async function syncRescuedAnimals(opts?: {
+  days?: number;
+  maxPages?: number;
+}): Promise<RescueSyncResult> {
+  const started = Date.now();
+  const supabase = getSupabaseService();
+  if (!supabase) {
+    return {
+      ok: false,
+      upserted: 0,
+      pages: 0,
+      totalCount: 0,
+      errors: ["SUPABASE_SERVICE_ROLE_KEY 필요"],
+      durationMs: 0,
+    };
+  }
+
+  const days = opts?.days ?? 14;
+  const maxPages = opts?.maxPages ?? Number.POSITIVE_INFINITY;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days);
+  const serviceKey = getEncodedServiceKey();
+
+  let pageNo = 1;
+  let upserted = 0;
+  let pages = 0;
+  let totalCount = 0;
+  const errors: string[] = [];
+
+  try {
+    while (pageNo <= maxPages) {
+      const qs = [
+        `serviceKey=${serviceKey}`,
+        `bgnde=${yyyymmdd(start)}`,
+        `endde=${yyyymmdd(end)}`,
+        `pageNo=${pageNo}`,
+        `numOfRows=100`,
+        `_type=json`,
+      ].join("&");
+
+      const json = await fetchDataGoKrJson(`${API}?${qs}`);
+      const { rows, totalCount: tc } = extractItemRows(json);
+      totalCount = tc || totalCount;
+      pages += 1;
+      if (!rows.length) break;
+
+      const mapped = rows
+        .map(mapRescueRow)
+        .filter((r): r is NonNullable<typeof r> => Boolean(r));
+
+      for (let i = 0; i < mapped.length; i += 200) {
+        const chunk = mapped.slice(i, i + 200);
+        const { error } = await supabase.from("rescued_animals").upsert(chunk, {
+          onConflict: "desertion_no",
+        });
+        if (error) throw new Error(error.message);
+        upserted += chunk.length;
+      }
+
+      if (pageNo * 100 >= totalCount) break;
+      if (rows.length < 100) break;
+      pageNo += 1;
+      if (Date.now() - started > 240_000) break;
+    }
+  } catch (e) {
+    errors.push(e instanceof Error ? e.message : String(e));
+  }
+
+  return {
+    ok: errors.length === 0,
+    upserted,
+    pages,
+    totalCount,
+    errors,
+    durationMs: Date.now() - started,
+  };
+}
+
+function mapRescueRow(row: Record<string, unknown>) {
+  const desertion_no = pickStr(row, ["desertionNo", "desertion_no"]);
+  if (!desertion_no) return null;
+
+  const care_addr = pickStr(row, ["careAddr", "care_addr"]);
+  const happen_place = pickStr(row, ["happenPlace", "happen_place"]);
+  const parsed = parseRegionFromAddress(care_addr || happen_place);
+  const org = pickStr(row, ["orgNm", "org_nm"]);
+
+  return {
+    desertion_no,
+    image_url: pickStr(row, ["popfile", "filename", "popFile"]),
+    happen_dt: pickStr(row, ["happenDt", "happen_dt"]),
+    happen_place,
+    kind_cd: pickStr(row, ["kindCd", "kind_cd"]),
+    color_cd: pickStr(row, ["colorCd", "color_cd"]),
+    age: pickStr(row, ["age"]),
+    weight: pickStr(row, ["weight"]),
+    sex_cd: pickStr(row, ["sexCd", "sex_cd"]),
+    neuter_yn: pickStr(row, ["neuterYn", "neuter_yn"]),
+    special_mark: pickStr(row, ["specialMark", "special_mark"]),
+    notice_no: pickStr(row, ["noticeNo", "notice_no"]),
+    notice_sdt: pickStr(row, ["noticeSdt", "notice_sdt"]),
+    notice_edt: pickStr(row, ["noticeEdt", "notice_edt"]),
+    process_state: pickStr(row, ["processState", "process_state"]),
+    care_nm: pickStr(row, ["careNm", "care_nm"]),
+    care_tel: pickStr(row, ["careTel", "care_tel"]),
+    care_addr,
+    org_nm: org,
+    sido: normalizeSido(org?.split(/\s+/)[0] || null) || parsed.sido,
+    sigungu: parsed.sigungu,
+    updated_at: new Date().toISOString(),
+  };
+}

@@ -11,6 +11,18 @@
     {
       "path": "/api/cron/sync-places?mode=weekly",
       "schedule": "0 5 * * 1"
+    },
+    {
+      "path": "/api/cron/sync-rescues?days=21",
+      "schedule": "30 3 * * 1"
+    },
+    {
+      "path": "/api/cron/sync-travel?maxPages=20&enrich=1",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/sync-travel?maxPages=40&enrich=0",
+      "schedule": "30 6 * * 1"
     }
   ]
 }

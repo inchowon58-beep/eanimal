@@ -12,8 +12,7 @@ export default function HomePage() {
             {SITE.name}
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-fg sm:text-lg">
-            공공 인허가 데이터 기반 동물병원·동물약국·동물장묘업 정보를 지역별로
-            확인하세요.
+            인허가 시설 · 유실·유기동물 공고 · 반려동물 동반여행을 한곳에서 확인하세요.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link
@@ -23,10 +22,16 @@ export default function HomePage() {
               시설 찾기
             </Link>
             <Link
-              href="/regions"
+              href="/rescues"
               className="inline-flex h-11 items-center rounded-lg border border-border bg-card px-5 text-sm font-medium text-foreground"
             >
-              지역별 보기
+              구조 공고
+            </Link>
+            <Link
+              href="/travel"
+              className="inline-flex h-11 items-center rounded-lg border border-border bg-card px-5 text-sm font-medium text-foreground"
+            >
+              동반여행
             </Link>
           </div>
         </div>
@@ -36,12 +41,7 @@ export default function HomePage() {
         <MarketingBanner />
 
         <section>
-          <h2 className="font-display text-lg font-semibold text-foreground">
-            카테고리
-          </h2>
-          <p className="mt-1 text-sm text-muted-fg">
-            시·도·시군구 필터와 함께 SSR로 제공되는 목록 페이지입니다.
-          </p>
+          <h2 className="font-display text-lg font-semibold text-foreground">인허가 시설</h2>
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             {PLACE_CATEGORIES.map((cat) => (
               <Link
@@ -50,12 +50,25 @@ export default function HomePage() {
                 className="rounded-xl border border-border bg-card p-5 transition hover:border-accent/40"
               >
                 <h3 className="font-semibold text-foreground">{cat}</h3>
-                <p className="mt-2 text-sm text-muted-fg">
-                  {cat} 인허가 시설 목록 보기
-                </p>
+                <p className="mt-2 text-sm text-muted-fg">{cat} 인허가 목록</p>
               </Link>
             ))}
           </div>
+        </section>
+
+        <section className="grid gap-3 sm:grid-cols-2">
+          <Link href="/rescues" className="rounded-xl border border-border bg-card p-6 transition hover:border-accent/40">
+            <h3 className="font-semibold text-foreground">유실·유기동물 구조 공고</h3>
+            <p className="mt-2 text-sm text-muted-fg">
+              지역·품종·발견일 텍스트와 함께 매일 갱신되는 보호소 공고
+            </p>
+          </Link>
+          <Link href="/travel" className="rounded-xl border border-border bg-card p-6 transition hover:border-accent/40">
+            <h3 className="font-semibold text-foreground">반려동물 동반여행</h3>
+            <p className="mt-2 text-sm text-muted-fg">
+              애견동반 카페·펜션·관광지와 에티켓 안내
+            </p>
+          </Link>
         </section>
       </div>
     </div>
