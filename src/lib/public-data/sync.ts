@@ -1,0 +1,145 @@
+import {
+  PUBLIC_DATA_ENDPOINTS,
+  type PublicDataEndpoint,
+} from "@/lib/public-data/endpoints";
+import { fetchPublicDataPage } from "@/lib/public-data/client";
+import { mapPublicRowToPlace, type PlaceUpsertRow } from "@/lib/public-data/map-row";
+import { getSupabaseService } from "@/lib/supabase/server";
+import type { PlaceCategory } from "@/lib/site";
+
+export interface SyncOptions {
+  categories?: PlaceCategory[];
+  /** 카테고리당 최대 페이지 (기본 전체). 개발 시 제한용 */
+  maxPages?: number;
+  pageSize?: number;
+  onProgress?: (msg: string) => void;
+}
+
+export interface SyncResult {
+  ok: boolean;
+  upserted: number;
+  skipped: number;
+  pages: number;
+  byCategory: Record<string, { upserted: number; pages: number; totalCount: number }>;
+  errors: string[];
+  durationMs: number;
+}
+
+export async function syncPlacesFromPublicData(
+  options: SyncOptions = {}
+): Promise<SyncResult> {
+  const started = Date.now();
+  const supabase = getSupabaseService();
+  if (!supabase) {
+    return {
+      ok: false,
+      upserted: 0,
+      skipped: 0,
+      pages: 0,
+      byCategory: {},
+      errors: [
+        "Supabase service role이 필요합니다. SUPABASE_SERVICE_ROLE_KEY를 설정하세요.",
+      ],
+      durationMs: 0,
+    };
+  }
+
+  const endpoints = PUBLIC_DATA_ENDPOINTS.filter(
+    (e) => !options.categories || options.categories.includes(e.category)
+  );
+
+  const result: SyncResult = {
+    ok: true,
+    upserted: 0,
+    skipped: 0,
+    pages: 0,
+    byCategory: {},
+    errors: [],
+    durationMs: 0,
+  };
+
+  for (const endpoint of endpoints) {
+    try {
+      const catResult = await syncEndpoint(endpoint, supabase, options);
+      result.upserted += catResult.upserted;
+      result.skipped += catResult.skipped;
+      result.pages += catResult.pages;
+      result.byCategory[endpoint.category] = {
+        upserted: catResult.upserted,
+        pages: catResult.pages,
+        totalCount: catResult.totalCount,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      result.errors.push(`[${endpoint.category}] ${msg}`);
+      result.ok = false;
+      options.onProgress?.(`오류: ${endpoint.category} — ${msg}`);
+    }
+  }
+
+  result.durationMs = Date.now() - started;
+  return result;
+}
+
+async function syncEndpoint(
+  endpoint: PublicDataEndpoint,
+  supabase: NonNullable<ReturnType<typeof getSupabaseService>>,
+  options: SyncOptions
+) {
+  const pageSize = options.pageSize ?? 1000;
+  const maxPages = options.maxPages ?? Number.POSITIVE_INFINITY;
+  let pageNo = 1;
+  let upserted = 0;
+  let skipped = 0;
+  let pages = 0;
+  let totalCount = 0;
+
+  while (pageNo <= maxPages) {
+    options.onProgress?.(
+      `${endpoint.category} page ${pageNo} 요청 중…`
+    );
+    const page = await fetchPublicDataPage(endpoint, pageNo, pageSize);
+    totalCount = page.totalCount || totalCount;
+    pages += 1;
+
+    if (page.rows.length === 0) break;
+
+    const mapped: PlaceUpsertRow[] = [];
+    for (const row of page.rows) {
+      const place = mapPublicRowToPlace(
+        row,
+        endpoint.category,
+        endpoint.localIdPrefix
+      );
+      if (!place) {
+        skipped += 1;
+        continue;
+      }
+      mapped.push(place);
+    }
+
+    // UPSERT in chunks
+    for (let i = 0; i < mapped.length; i += 200) {
+      const chunk = mapped.slice(i, i + 200);
+      const { error } = await supabase.from("places").upsert(chunk, {
+        onConflict: "local_id",
+        ignoreDuplicates: false,
+      });
+      if (error) {
+        throw new Error(`Supabase upsert 실패: ${error.message}`);
+      }
+      upserted += chunk.length;
+    }
+
+    options.onProgress?.(
+      `${endpoint.category} page ${pageNo} 완료 (+${mapped.length})`
+    );
+
+    const fetched = pageNo * pageSize;
+    if (page.rows.length < pageSize) break;
+    if (totalCount > 0 && fetched >= totalCount) break;
+    pageNo += 1;
+  }
+
+  return { upserted, skipped, pages, totalCount };
+}

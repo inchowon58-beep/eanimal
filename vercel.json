@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/seo-rankings",
-      "schedule": "0 12 * * *"
+      "path": "/api/cron/sync-places",
+      "schedule": "0 3 * * *"
     }
   ]
 }

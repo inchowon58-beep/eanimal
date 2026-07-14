@@ -1,24 +1,25 @@
 import type { MetadataRoute } from "next";
-import { getSitemapEntries } from "@/lib/sitemap-feed";
-import { getSiteUrlAsync } from "@/lib/site-url";
-
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+import { SITE } from "@/lib/site";
+import { listDistinctSido, regionPath, SIDO_LIST } from "@/lib/regions";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  try {
-    const baseUrl = await getSiteUrlAsync();
-    return await getSitemapEntries(baseUrl);
-  } catch (error) {
-    console.error("sitemap error:", error);
-    const baseUrl = await getSiteUrlAsync();
-    return [
-      {
-        url: baseUrl,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 1,
-      },
-    ];
+  const base = SITE.url.replace(/\/$/, "");
+  const sidos = await listDistinctSido();
+  const sidoList = sidos.length ? sidos : [...SIDO_LIST];
+
+  const entries: MetadataRoute.Sitemap = [
+    { url: base, changeFrequency: "daily", priority: 1 },
+    { url: `${base}/places`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${base}/regions`, changeFrequency: "daily", priority: 0.9 },
+  ];
+
+  for (const sido of sidoList) {
+    entries.push({
+      url: `${base}${regionPath(sido)}`,
+      changeFrequency: "daily",
+      priority: 0.8,
+    });
   }
+
+  return entries;
 }
