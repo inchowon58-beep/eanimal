@@ -7,10 +7,7 @@ import {
 import { getSupabaseService } from "@/lib/supabase/server";
 import { normalizeSido, parseRegionFromAddress } from "@/lib/public-data/normalize";
 
-const BASE_CANDIDATES = [
-  "https://apis.data.go.kr/B551011/KorPetTourService2",
-  "https://apis.data.go.kr/B551011/KorPetTourService",
-];
+const BASE = "https://apis.data.go.kr/B551011/KorPetTourService2";
 const MOBILE_OS = "ETC";
 const MOBILE_APP = "eanimal";
 
@@ -42,6 +39,30 @@ export interface TravelSyncResult {
   totalCount: number;
   errors: string[];
   durationMs: number;
+  strategy?: string;
+}
+
+function commonQs(serviceKey: string, pageNo: number, numOfRows: number) {
+  return [
+    `serviceKey=${serviceKey}`,
+    `numOfRows=${numOfRows}`,
+    `pageNo=${pageNo}`,
+    `MobileOS=${MOBILE_OS}`,
+    `MobileApp=${encodeURIComponent(MOBILE_APP)}`,
+    `_type=json`,
+  ].join("&");
+}
+
+async function fetchListPage(
+  path: string,
+  serviceKey: string,
+  pageNo: number,
+  numOfRows: number,
+  extraQs = ""
+) {
+  const qs = `${commonQs(serviceKey, pageNo, numOfRows)}${extraQs ? `&${extraQs}` : ""}`;
+  const json = await fetchDataGoKrJson(`${BASE}/${path}?${qs}`);
+  return extractItemRows(json);
 }
 
 export async function syncPetTravel(opts?: {
@@ -68,43 +89,64 @@ export async function syncPetTravel(opts?: {
   let pages = 0;
   let totalCount = 0;
   const errors: string[] = [];
-  const areaCodes = Object.keys(AREA_CODE_SIDO);
-  let activeBase = BASE_CANDIDATES[0];
-
-  // 엔드포인트 유효성 탐침 (서울 1페이지)
-  for (const base of BASE_CANDIDATES) {
-    try {
-      const probeQs = [
-        `serviceKey=${serviceKey}`,
-        `numOfRows=1`,
-        `pageNo=1`,
-        `MobileOS=${MOBILE_OS}`,
-        `MobileApp=${encodeURIComponent(MOBILE_APP)}`,
-        `_type=json`,
-        `listYN=Y`,
-        `arrange=C`,
-        `areaCode=1`,
-      ].join("&");
-      const probe = await fetchDataGoKrJson(`${base}/areaBasedList2?${probeQs}`);
-      const { rows, totalCount: tc } = extractItemRows(probe);
-      if (rows.length || tc > 0) {
-        activeBase = base;
-        break;
-      }
-      // v1 경로명 호환
-      const probeV1 = await fetchDataGoKrJson(`${base}/areaBasedList?${probeQs}`);
-      const r2 = extractItemRows(probeV1);
-      if (r2.rows.length || r2.totalCount > 0) {
-        activeBase = base;
-        break;
-      }
-    } catch (e) {
-      errors.push(`probe ${base}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
+  let strategy = "";
 
   try {
-    // 관광공사 API는 시·도(areaCode)별로 수집
+    // 1) 전국 동기화 목록 (권장) → 2) 전국 areaBasedList2 → 3) 시·도별 areaBasedList2
+    const strategies: Array<{
+      name: string;
+      path: string;
+      extraQs: string;
+      byArea: boolean;
+    }> = [
+      {
+        name: "petTourSyncList2",
+        path: "petTourSyncList2",
+        extraQs: "arrange=C",
+        byArea: false,
+      },
+      {
+        name: "areaBasedList2-national",
+        path: "areaBasedList2",
+        extraQs: "listYN=Y&arrange=C",
+        byArea: false,
+      },
+      {
+        name: "areaBasedList2-by-area",
+        path: "areaBasedList2",
+        extraQs: "listYN=Y&arrange=C",
+        byArea: true,
+      },
+    ];
+
+    let selected = strategies[0];
+    for (const s of strategies) {
+      try {
+        const extra = s.byArea ? `${s.extraQs}&areaCode=1` : s.extraQs;
+        const probe = await fetchListPage(s.path, serviceKey, 1, 1, extra);
+        if (probe.rows.length > 0 || probe.totalCount > 0) {
+          selected = s;
+          strategy = s.name;
+          break;
+        }
+        errors.push(`probe ${s.name}: empty (totalCount=${probe.totalCount})`);
+      } catch (e) {
+        errors.push(
+          `probe ${s.name}: ${e instanceof Error ? e.message : String(e)}`
+        );
+      }
+    }
+
+    if (!strategy) {
+      // 전부 empty여도 마지막 전략으로 시도해 메타를 남김
+      selected = strategies[0];
+      strategy = `${selected.name} (fallback-empty)`;
+    }
+
+    const areaCodes = selected.byArea
+      ? Object.keys(AREA_CODE_SIDO)
+      : ([""] as string[]);
+
     for (const areaCode of areaCodes) {
       if (Date.now() - started > 250_000) break;
       let pageNo = 1;
@@ -112,33 +154,34 @@ export async function syncPetTravel(opts?: {
 
       while (pageNo <= maxPages) {
         if (Date.now() - started > 250_000) break;
-        const qs = [
-          `serviceKey=${serviceKey}`,
-          `numOfRows=50`,
-          `pageNo=${pageNo}`,
-          `MobileOS=${MOBILE_OS}`,
-          `MobileApp=${encodeURIComponent(MOBILE_APP)}`,
-          `_type=json`,
-          `listYN=Y`,
-          `arrange=C`,
-          `areaCode=${areaCode}`,
-        ].join("&");
+        const extra = selected.byArea
+          ? `${selected.extraQs}&areaCode=${areaCode}`
+          : selected.extraQs;
 
         let rows: Record<string, unknown>[] = [];
         let tc = 0;
         try {
-          const json = await fetchDataGoKrJson(`${activeBase}/areaBasedList2?${qs}`);
-          const parsed = extractItemRows(json);
+          const parsed = await fetchListPage(
+            selected.path,
+            serviceKey,
+            pageNo,
+            50,
+            extra
+          );
           rows = parsed.rows;
           tc = parsed.totalCount;
-        } catch {
-          const json = await fetchDataGoKrJson(`${activeBase}/areaBasedList?${qs}`);
-          const parsed = extractItemRows(json);
-          rows = parsed.rows;
-          tc = parsed.totalCount;
+        } catch (e) {
+          errors.push(
+            `${selected.path} p${pageNo}${areaCode ? ` area=${areaCode}` : ""}: ${
+              e instanceof Error ? e.message : String(e)
+            }`
+          );
+          break;
         }
 
-        totalCount += tc || 0;
+        if (pageNo === 1 && !selected.byArea) totalCount = tc || 0;
+        else if (selected.byArea && pageNo === 1) totalCount += tc || 0;
+
         pages += 1;
         areaPages += 1;
         if (!rows.length) break;
@@ -147,14 +190,12 @@ export async function syncPetTravel(opts?: {
         for (const row of rows) {
           const baseRow = mapTravelListRow(row);
           if (!baseRow) continue;
-          if (!baseRow.sido) baseRow.sido = AREA_CODE_SIDO[areaCode] || null;
+          if (!baseRow.sido && areaCode) {
+            baseRow.sido = AREA_CODE_SIDO[areaCode] || null;
+          }
           if (enrich) {
             try {
-              const detail = await fetchPetDetail(
-                serviceKey,
-                baseRow.content_id,
-                activeBase
-              );
+              const detail = await fetchPetDetail(serviceKey, baseRow.content_id);
               if (detail.overview) baseRow.overview = detail.overview;
               if (detail.pet_info) baseRow.pet_info = detail.pet_info;
               if (detail.pet_rule) baseRow.pet_rule = detail.pet_rule;
@@ -181,26 +222,33 @@ export async function syncPetTravel(opts?: {
         if (pageNo * 50 >= (tc || 0)) break;
         if (rows.length < 50) break;
         pageNo += 1;
-        if (areaPages >= Math.min(maxPages, 10)) break;
+        if (areaPages >= Math.min(maxPages, 40)) break;
       }
     }
 
     if (upserted === 0) {
       errors.push(
-        `동반여행 데이터가 비었습니다. activeBase=${activeBase}. 관광공사 API 활용신청(운영) 승인·트래픽을 확인해 주세요.`
+        `동반여행 데이터가 비었습니다. strategy=${strategy}. 공공데이터포털에서 '한국관광공사_반려동물_동반여행_서비스' 활용신청(승인)과 일반인증키를 확인해 주세요.`
       );
     }
   } catch (e) {
     errors.push(e instanceof Error ? e.message : String(e));
   }
 
+  // probe empty 메시지는 성공 시 제거
+  const finalErrors =
+    upserted > 0
+      ? errors.filter((x) => !x.startsWith("probe "))
+      : errors;
+
   return {
-    ok: errors.length === 0,
+    ok: finalErrors.length === 0,
     upserted,
     pages,
     totalCount,
-    errors,
+    errors: finalErrors,
     durationMs: Date.now() - started,
+    strategy,
   };
 }
 
@@ -243,11 +291,7 @@ function mapTravelListRow(row: Record<string, unknown>) {
   };
 }
 
-async function fetchPetDetail(
-  serviceKey: string,
-  contentId: string,
-  base: string
-) {
+async function fetchPetDetail(serviceKey: string, contentId: string) {
   const qs = [
     `serviceKey=${serviceKey}`,
     `MobileOS=${MOBILE_OS}`,
@@ -256,13 +300,10 @@ async function fetchPetDetail(
     `_type=json`,
   ].join("&");
 
-  const petPath = base.includes("Service2") ? "detailPetTour2" : "detailPetTour";
-  const commonPath = base.includes("Service2") ? "detailCommon2" : "detailCommon";
-
   const [petJson, commonJson] = await Promise.all([
-    fetchDataGoKrJson(`${base}/${petPath}?${qs}`),
+    fetchDataGoKrJson(`${BASE}/detailPetTour2?${qs}`),
     fetchDataGoKrJson(
-      `${base}/${commonPath}?${qs}&defaultYN=Y&overviewYN=Y&addrinfoYN=Y`
+      `${BASE}/detailCommon2?${qs}&defaultYN=Y&overviewYN=Y&addrinfoYN=Y`
     ),
   ]);
 

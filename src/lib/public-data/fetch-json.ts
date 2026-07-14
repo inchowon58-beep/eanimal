@@ -75,8 +75,9 @@ export async function fetchDataGoKrJson(url: string): Promise<unknown> {
   });
   const text = await res.text();
   if (!res.ok) {
+    const preview = text.replace(/\s+/g, " ").slice(0, 180);
     throw new PublicDataApiError(
-      `HTTP ${res.status}`,
+      `HTTP ${res.status}${preview ? `: ${preview}` : ""}`,
       res.status,
       text.slice(0, 500)
     );
