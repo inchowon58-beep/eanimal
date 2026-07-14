@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "www.animal.go.kr", pathname: "/**" },
       { protocol: "https", hostname: "animal.go.kr", pathname: "/**" },
       { protocol: "http", hostname: "animal.go.kr", pathname: "/**" },
+      { protocol: "https", hostname: "openapi.animal.go.kr", pathname: "/**" },
+      { protocol: "http", hostname: "openapi.animal.go.kr", pathname: "/**" },
       { protocol: "https", hostname: "**.animal.go.kr", pathname: "/**" },
       { protocol: "http", hostname: "**.animal.go.kr", pathname: "/**" },
       { protocol: "https", hostname: "tong.visitkorea.or.kr", pathname: "/**" },

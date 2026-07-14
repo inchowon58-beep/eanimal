@@ -35,12 +35,12 @@ export interface RescueSyncResult {
 
 function pickImageUrl(row: Record<string, unknown>): string | null {
   const raw = pickStr(row, [
+    "popfile1",
+    "popfile2",
     "popfile",
     "popFile",
     "filename",
     "fileName",
-    "popfile1",
-    "popfile2",
     "PHOTO_URL",
     "photoUrl",
     "imageUrl",
@@ -48,15 +48,15 @@ function pickImageUrl(row: Record<string, unknown>): string | null {
     "img",
   ]);
   if (!raw) return null;
-  // 상대경로면 animal.go.kr 기준으로 보정
   let url = raw;
   if (url.startsWith("//")) url = `https:${url}`;
   else if (url.startsWith("/")) url = `https://www.animal.go.kr${url}`;
   else if (!/^https?:\/\//i.test(url) && url.includes("files/shelter")) {
     url = `https://www.animal.go.kr/${url.replace(/^\/+/, "")}`;
   }
-  // Next/Image·브라우저 혼선 줄이려고 animal.go.kr 는 https 로 통일
+  // openapi / www animal.go.kr 은 https 로 통일
   url = url.replace(/^http:\/\/(www\.)?animal\.go\.kr/i, "https://www.animal.go.kr");
+  url = url.replace(/^http:\/\/openapi\.animal\.go\.kr/i, "https://openapi.animal.go.kr");
   return url;
 }
 
