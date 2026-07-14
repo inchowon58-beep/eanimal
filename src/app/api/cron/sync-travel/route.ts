@@ -20,9 +20,11 @@ export async function GET(req: Request) {
   }
   const url = new URL(req.url);
   const maxPages = url.searchParams.get("maxPages");
+  const startPage = url.searchParams.get("startPage");
   const enrich = url.searchParams.get("enrich") !== "0";
   const result = await syncPetTravel({
     maxPages: maxPages ? Number(maxPages) : undefined,
+    startPage: startPage ? Number(startPage) : undefined,
     enrichDetails: enrich,
   });
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });

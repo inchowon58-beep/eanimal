@@ -67,6 +67,8 @@ async function fetchListPage(
 
 export async function syncPetTravel(opts?: {
   maxPages?: number;
+  /** 1-based page offset for batch sync (default 1) */
+  startPage?: number;
   enrichDetails?: boolean;
 }): Promise<TravelSyncResult> {
   const started = Date.now();
@@ -83,6 +85,7 @@ export async function syncPetTravel(opts?: {
   }
 
   const maxPages = opts?.maxPages ?? Number.POSITIVE_INFINITY;
+  const startPage = Math.max(1, opts?.startPage ?? 1);
   const enrich = opts?.enrichDetails !== false;
   const serviceKey = getEncodedServiceKey();
   let upserted = 0;
@@ -147,12 +150,15 @@ export async function syncPetTravel(opts?: {
       ? Object.keys(AREA_CODE_SIDO)
       : ([""] as string[]);
 
+    const endPage =
+      Number.isFinite(maxPages) ? startPage + maxPages - 1 : Number.POSITIVE_INFINITY;
+
     for (const areaCode of areaCodes) {
       if (Date.now() - started > 250_000) break;
-      let pageNo = 1;
+      let pageNo = selected.byArea ? 1 : startPage;
       let areaPages = 0;
 
-      while (pageNo <= maxPages) {
+      while (pageNo <= endPage) {
         if (Date.now() - started > 250_000) break;
         const extra = selected.byArea
           ? `${selected.extraQs}&areaCode=${areaCode}`
@@ -179,7 +185,7 @@ export async function syncPetTravel(opts?: {
           break;
         }
 
-        if (pageNo === 1 && !selected.byArea) totalCount = tc || 0;
+        if (pageNo === startPage && !selected.byArea) totalCount = tc || 0;
         else if (selected.byArea && pageNo === 1) totalCount += tc || 0;
 
         pages += 1;
@@ -222,7 +228,7 @@ export async function syncPetTravel(opts?: {
         if (pageNo * 50 >= (tc || 0)) break;
         if (rows.length < 50) break;
         pageNo += 1;
-        if (areaPages >= Math.min(maxPages, 40)) break;
+        if (selected.byArea && areaPages >= Math.min(maxPages, 40)) break;
       }
     }
 
