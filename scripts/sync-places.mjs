@@ -23,7 +23,7 @@ const BASE = "https://apis.data.go.kr/1741000";
 const ENDPOINTS = [
   { category: "동물병원", path: "/animal_hospitals/info", prefix: "hosp" },
   { category: "동물약국", path: "/animal_pharmacies/info", prefix: "pharm" },
-  { category: "위탁관리업", path: "/animal_boarding/info", prefix: "board" },
+  { category: "동물장묘업", path: "/animal_cremation/info", prefix: "crem" },
 ];
 
 function env(name) {

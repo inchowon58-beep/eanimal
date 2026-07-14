@@ -28,10 +28,10 @@ export default function Header() {
             동물약국
           </Link>
           <Link
-            href="/places?category=위탁관리업"
+            href="/places?category=동물장묘업"
             className="rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-accent-fg transition hover:opacity-90"
           >
-            위탁관리
+            동물장묘
           </Link>
         </nav>
       </div>

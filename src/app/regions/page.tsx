@@ -13,7 +13,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "지역별 반려동물 인프라",
-  description: `시·도별 동물병원·동물약국·위탁관리업 안내 — ${SITE.name}`,
+  description: `시·도별 동물병원·동물약국·동물장묘업 안내 — ${SITE.name}`,
 };
 
 export default async function RegionsIndexPage() {
@@ -29,7 +29,7 @@ export default async function RegionsIndexPage() {
         지역별 반려동물 인프라
       </h1>
       <p className="mt-2 text-sm text-muted-fg">
-        시·도를 선택하면 동물병원·동물약국·위탁관리업 롱테일 페이지로 이동합니다.
+        시·도를 선택하면 동물병원·동물약국·동물장묘업 롱테일 페이지로 이동합니다.
       </p>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

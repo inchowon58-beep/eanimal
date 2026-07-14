@@ -8,8 +8,10 @@ export const maxDuration = 300;
 function authorize(req: Request): boolean {
   const secret = process.env.CRON_SECRET || process.env.SYNC_SECRET;
   if (!secret) {
-    // 로컬 개발: secret 없으면 허용하지 않음 (실수 방지). DEV만 예외.
-    return process.env.NODE_ENV === "development" && process.env.ALLOW_DEV_SYNC === "1";
+    return (
+      process.env.NODE_ENV === "development" &&
+      process.env.ALLOW_DEV_SYNC === "1"
+    );
   }
   const auth = req.headers.get("authorization");
   if (auth === `Bearer ${secret}`) return true;
@@ -36,12 +38,16 @@ async function handle(req: Request) {
   const maxPages = url.searchParams.get("maxPages");
   const pageSize = url.searchParams.get("pageSize");
   const startPage = url.searchParams.get("startPage");
+  const weekly =
+    url.searchParams.get("mode") === "weekly" ||
+    url.searchParams.get("weekly") === "1";
 
   const result = await syncPlacesFromPublicData({
     categories: parseCategories(req),
     maxPages: maxPages ? Number(maxPages) : undefined,
     pageSize: pageSize ? Number(pageSize) : undefined,
     startPage: startPage ? Number(startPage) : undefined,
+    weekly,
   });
 
   return NextResponse.json(result, { status: result.ok ? 200 : 500 });

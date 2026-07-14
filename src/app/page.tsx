@@ -12,7 +12,7 @@ export default function HomePage() {
             {SITE.name}
           </h1>
           <p className="mt-4 max-w-xl text-base leading-relaxed text-muted-fg sm:text-lg">
-            공공 인허가 데이터 기반 동물병원·동물약국·위탁관리업 정보를 지역별로
+            공공 인허가 데이터 기반 동물병원·동물약국·동물장묘업 정보를 지역별로
             확인하세요.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

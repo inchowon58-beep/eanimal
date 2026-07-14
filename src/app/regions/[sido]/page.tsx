@@ -24,7 +24,7 @@ export async function generateMetadata({
   const { sido: raw } = await params;
   const sido = resolveSidoParam(raw);
   return {
-    title: `${sido} 동물병원·동물약국·위탁관리`,
+    title: `${sido} 동물병원·동물약국·동물장묘`,
     description: `${sido} 반려동물 인프라 인허가 정보 — ${SITE.name}`,
   };
 }

@@ -5,7 +5,6 @@ export const PUBLIC_DATA_BASE = "https://apis.data.go.kr/1741000";
 export interface PublicDataEndpoint {
   category: PlaceCategory;
   path: string;
-  /** 카테고리 구분용 local_id 접두사 */
   localIdPrefix: string;
 }
 
@@ -21,8 +20,8 @@ export const PUBLIC_DATA_ENDPOINTS: PublicDataEndpoint[] = [
     localIdPrefix: "pharm",
   },
   {
-    category: "위탁관리업",
-    path: "/animal_boarding/info",
-    localIdPrefix: "board",
+    category: "동물장묘업",
+    path: "/animal_cremation/info",
+    localIdPrefix: "crem",
   },
 ];

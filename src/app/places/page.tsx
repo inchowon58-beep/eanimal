@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import PlaceCard from "@/components/places/PlaceCard";
 import PlacesFilterBar from "@/components/places/PlacesFilterBar";
+import PlacesPagination from "@/components/places/PlacesPagination";
 import PlacesSeoBody from "@/components/places/PlacesSeoBody";
 import { listPlaces, parsePlacesFilter } from "@/lib/places/queries";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
 
-/** SSR: 요청마다 서버에서 HTML 완성 (클라이언트 외부 API 금지) */
 export const dynamic = "force-dynamic";
 
 interface PageProps {
@@ -24,7 +23,7 @@ export async function generateMetadata({
   const label = parts.length ? parts.join(" ") : "전국";
   return {
     title: `${label} 반려동물 시설`,
-    description: `${label} 동물병원·동물약국·위탁관리업 인허가 정보 — ${SITE.name}`,
+    description: `${label} 동물병원·동물약국·동물장묘업 인허가 정보 — ${SITE.name}`,
   };
 }
 
@@ -81,37 +80,16 @@ export default async function PlacesPage({ searchParams }: PageProps) {
         </div>
       )}
 
-      {totalPages > 1 && (
-        <nav
-          className="mt-8 flex flex-wrap items-center justify-center gap-2"
-          aria-label="페이지"
-        >
-          {Array.from({ length: Math.min(totalPages, 12) }, (_, i) => i + 1).map(
-            (p) => {
-              const qs = new URLSearchParams();
-              if (filter.sido) qs.set("sido", filter.sido);
-              if (filter.sigungu) qs.set("sigungu", filter.sigungu);
-              if (filter.category) qs.set("category", filter.category);
-              if (filter.q) qs.set("q", filter.q);
-              qs.set("page", String(p));
-              const active = p === result.page;
-              return (
-                <Link
-                  key={p}
-                  href={`/places?${qs.toString()}`}
-                  className={`inline-flex h-9 min-w-9 items-center justify-center rounded-lg px-2 text-sm ${
-                    active
-                      ? "bg-accent font-semibold text-accent-fg"
-                      : "border border-border bg-card text-muted-fg hover:text-foreground"
-                  }`}
-                >
-                  {p}
-                </Link>
-              );
-            }
-          )}
-        </nav>
-      )}
+      <PlacesPagination
+        page={result.page}
+        totalPages={totalPages}
+        filter={{
+          sido: filter.sido,
+          sigungu: filter.sigungu,
+          category: filter.category || undefined,
+          q: filter.q,
+        }}
+      />
 
       <PlacesSeoBody
         sido={filter.sido}
