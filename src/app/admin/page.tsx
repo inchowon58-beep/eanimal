@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { getSupabaseService, getSupabaseServer } from "@/lib/supabase/server";
-import AdminLogoutButton from "@/app/admin/AdminLogoutButton";
+import AdminHeader from "@/components/admin/AdminHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -39,21 +38,7 @@ export default async function AdminPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">관리자</h1>
-          <p className="mt-1 text-sm text-muted-fg">정보삭제요청 목록</p>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/"
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium"
-          >
-            사이트로
-          </Link>
-          <AdminLogoutButton />
-        </div>
-      </div>
+      <AdminHeader active="requests" subtitle="정보삭제요청 목록" />
 
       {loadError && (
         <p className="mt-6 rounded-lg border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">

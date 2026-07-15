@@ -126,7 +126,7 @@ export default async function RescueDetailPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
-      <MarketingBanner />
+      <MarketingBanner placement="rescue" />
       <Link href="/rescues" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← 공고 목록
       </Link>
@@ -177,7 +177,7 @@ export default async function RescueDetailPage({ params }: Props) {
       />
 
       <div className="mt-8">
-        <MarketingBanner />
+        <MarketingBanner placement="rescue" />
       </div>
     </div>
   );

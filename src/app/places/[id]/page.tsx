@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
+import { categoryToPlacement } from "@/lib/banners/types";
 import JsonLd from "@/components/seo/JsonLd";
 import KeywordTags from "@/components/seo/KeywordTags";
 import RegionalRelated from "@/components/seo/RegionalRelated";
@@ -122,7 +123,7 @@ export default async function PlaceDetailPage({ params }: PageProps) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
-      <MarketingBanner />
+      <MarketingBanner placement={categoryToPlacement(place.category)} />
 
       <div className="mt-6 mb-4">
         <Link href="/places" className="text-sm text-muted-fg hover:text-foreground">

@@ -24,7 +24,7 @@ export default async function RegionsIndexPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <MarketingBanner />
+      <MarketingBanner placement="regions" />
       <h1 className="mt-6 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
         지역별 반려동물 인프라
       </h1>

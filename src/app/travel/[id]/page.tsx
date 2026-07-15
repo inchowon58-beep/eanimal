@@ -125,7 +125,7 @@ export default async function TravelDetailPage({ params }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
-      <MarketingBanner />
+      <MarketingBanner placement="travel" />
       <Link href="/travel" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← 동반여행 목록
       </Link>

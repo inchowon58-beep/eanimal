@@ -41,7 +41,7 @@ export default async function HomePage() {
       </section>
 
       <div className="mx-auto max-w-6xl space-y-12 px-4 py-10 sm:px-6 sm:py-12">
-        <MarketingBanner />
+        <MarketingBanner placement="main_top" />
 
         {/* 유기동물 공고 */}
         <PortalBlock
