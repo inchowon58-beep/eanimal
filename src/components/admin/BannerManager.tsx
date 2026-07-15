@@ -15,7 +15,6 @@ interface FormState {
   enabled: boolean;
   start_at: string;
   end_at: string;
-  sort_order: number;
 }
 
 const EMPTY_FORM: FormState = {
@@ -29,7 +28,6 @@ const EMPTY_FORM: FormState = {
   enabled: true,
   start_at: "",
   end_at: "",
-  sort_order: 0,
 };
 
 function toLocalInput(iso: string | null): string {
@@ -79,7 +77,6 @@ export default function BannerManager({ initialBanners }: { initialBanners: Bann
       enabled: b.enabled,
       start_at: toLocalInput(b.start_at),
       end_at: toLocalInput(b.end_at),
-      sort_order: b.sort_order ?? 0,
     });
   }
 
@@ -135,7 +132,6 @@ export default function BannerManager({ initialBanners }: { initialBanners: Bann
       enabled: form.enabled,
       start_at: fromLocalInput(form.start_at),
       end_at: fromLocalInput(form.end_at),
-      sort_order: Number(form.sort_order) || 0,
     };
     try {
       const res = await fetch("/api/admin/banners", {
@@ -236,16 +232,6 @@ export default function BannerManager({ initialBanners }: { initialBanners: Bann
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 className={inputCls}
                 placeholder="010-0000-0000"
-              />
-            </label>
-
-            <label className="block text-xs font-medium text-muted-fg">
-              정렬 순서 (작을수록 먼저)
-              <input
-                type="number"
-                value={form.sort_order}
-                onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })}
-                className={inputCls}
               />
             </label>
 
