@@ -97,3 +97,91 @@ body {
 .seo-body li {
   margin-bottom: 0.35rem;
 }
+
+/* SEO 본문 이미지 레이아웃 */
+.seo-body img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 14px;
+}
+.seo-body figure {
+  margin: 1.4rem 0;
+}
+.seo-fig img {
+  max-height: 460px;
+}
+.seo-grid {
+  display: grid;
+  gap: 10px;
+  margin: 1.4rem 0;
+}
+.seo-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.seo-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.seo-grid figure {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+}
+.seo-hero {
+  margin: 1.4rem 0;
+}
+.seo-hero-big {
+  margin: 0 0 10px;
+}
+.seo-hero-big img {
+  max-height: 440px;
+}
+.seo-hero-row {
+  display: grid;
+  gap: 10px;
+}
+.seo-hero-row.n2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.seo-hero-row.n3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.seo-hero-row figure {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+}
+.seo-side {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  align-items: center;
+  margin: 1.6rem 0;
+}
+.seo-side .seo-side-img {
+  margin: 0;
+  aspect-ratio: 4 / 3;
+}
+.seo-side.right .seo-side-img {
+  order: 2;
+}
+.seo-side .seo-side-text {
+  margin: 0;
+}
+.seo-side .seo-side-text p {
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .seo-grid.cols-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .seo-hero-row.n3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .seo-side {
+    grid-template-columns: 1fr;
+  }
+  .seo-side.right .seo-side-img {
+    order: 0;
+  }
+}

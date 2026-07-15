@@ -5,8 +5,10 @@ import {
   resolveRegionDetail,
 } from "@/lib/seo-pages/generate";
 import { getCategory, isValidCategory, parsePool } from "@/lib/seo-pages/categories";
+import { injectImages, listFolderImages, pickImages } from "@/lib/seo-pages/images";
 import {
   consumeQuota,
+  getCategoryImages,
   getCategoryPools,
   getQuotaStatus,
 } from "@/lib/seo-pages/settings";
@@ -81,6 +83,19 @@ async function pickRelatedKeywords(
   return pickRandom(candidates, 3);
 }
 
+/** 카테고리 이미지 폴더에서 7~12장 선택 (폴더 미등록/이미지 없음이면 빈 배열) */
+async function pickCategoryImages(
+  categoryId: string | null,
+  seed: string
+): Promise<string[]> {
+  if (!categoryId) return [];
+  const folders = await getCategoryImages();
+  const folder = folders[categoryId];
+  if (folder === undefined) return [];
+  const all = await listFolderImages(folder);
+  return pickImages(all, seed);
+}
+
 /** 키워드 1개로 SEO 페이지 생성 (쿼터/기간/중복 검사 포함) */
 export async function createSeoPageFromKeyword(
   rawKeyword: string,
@@ -110,6 +125,7 @@ export async function createSeoPageFromKeyword(
 
   const related = await pickRelatedKeywords(category, keyword);
   const detail = await resolveRegionDetail(keyword);
+  const images = await pickCategoryImages(category, keyword);
 
   let generated;
   try {
@@ -123,6 +139,8 @@ export async function createSeoPageFromKeyword(
 
   const slug = await uniqueSlug(keyword, generated.slug);
   const regionName = detail.sido ?? generated.region;
+  const content = injectImages(generated.content, images, keyword);
+  const imageUrl = images[0] ?? null;
 
   const { id, error } = await insertSeoPage({
     slug,
@@ -132,10 +150,10 @@ export async function createSeoPageFromKeyword(
     region_sigungu: detail.sigungu,
     title: generated.title,
     description: generated.description,
-    content: generated.content,
+    content,
     faqs: generated.faqs,
     keywords: related,
-    image_url: null,
+    image_url: imageUrl,
   });
 
   if (error || !id) {
@@ -185,10 +203,10 @@ export async function createSeoPageFromKeyword(
     region_sigungu: detail.sigungu,
     title: generated.title,
     description: generated.description,
-    content: generated.content,
+    content,
     faqs: generated.faqs,
     keywords: related,
-    image_url: null,
+    image_url: imageUrl,
     hidden: false,
     copied_at: null,
     created_at: new Date().toISOString(),

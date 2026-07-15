@@ -74,21 +74,50 @@ export async function getCategoryPools(): Promise<Record<string, string>> {
   return out;
 }
 
-/** 카테고리 1개의 풀 저장 */
-export async function saveCategoryPool(
+/** 카테고리별 이미지 폴더명 조회 ({ [categoryId]: "폴더명" }) */
+export async function getCategoryImages(): Promise<Record<string, string>> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return {};
+  const { data, error } = await supabase
+    .from("seo_settings")
+    .select("category_images")
+    .eq("id", "default")
+    .maybeSingle();
+  if (error || !data?.category_images) return {};
+  const imgs = data.category_images as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(imgs)) {
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 저장 (제공된 항목만) */
+export async function saveCategoryConfig(
   categoryId: string,
-  pool: string
+  input: { pool?: string; imageFolder?: string }
 ): Promise<{ error: string | null }> {
   const supabase = getSupabaseService();
   if (!supabase) return { error: "service role 키가 필요합니다." };
-  const pools = await getCategoryPools();
-  pools[categoryId] = pool;
+
+  const row: Record<string, unknown> = {
+    id: "default",
+    updated_at: new Date().toISOString(),
+  };
+  if (input.pool !== undefined) {
+    const pools = await getCategoryPools();
+    pools[categoryId] = input.pool;
+    row.category_pools = pools;
+  }
+  if (input.imageFolder !== undefined) {
+    const imgs = await getCategoryImages();
+    imgs[categoryId] = input.imageFolder;
+    row.category_images = imgs;
+  }
+
   const { error } = await supabase
     .from("seo_settings")
-    .upsert(
-      { id: "default", category_pools: pools, updated_at: new Date().toISOString() },
-      { onConflict: "id" }
-    );
+    .upsert(row, { onConflict: "id" });
   return { error: error?.message ?? null };
 }
 

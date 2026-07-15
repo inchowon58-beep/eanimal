@@ -18,6 +18,7 @@ interface CategoryRow {
   label: string;
   topic: string;
   pool: string;
+  imageFolder: string;
   isDefault: boolean;
 }
 
@@ -80,6 +81,7 @@ export default function SeoPageManager() {
   const [category, setCategory] = useState<string>(SEO_CATEGORIES[0].id);
   const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [poolText, setPoolText] = useState("");
+  const [imageFolder, setImageFolder] = useState("");
   const [poolSaving, setPoolSaving] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
@@ -153,10 +155,13 @@ export default function SeoPageManager() {
     };
   }, []);
 
-  // 선택된 카테고리의 풀을 편집 영역에 반영
+  // 선택된 카테고리의 풀/이미지폴더를 편집 영역에 반영
   useEffect(() => {
     const row = categories.find((c) => c.id === category);
-    if (row) setPoolText(row.pool);
+    if (row) {
+      setPoolText(row.pool);
+      setImageFolder(row.imageFolder || "");
+    }
   }, [categories, category]);
 
   const serviceActive = !quota || quota.service.active;
@@ -268,22 +273,24 @@ export default function SeoPageManager() {
 
   async function savePool() {
     setPoolSaving(true);
-    setMessage("연관 키워드 저장 중...");
+    setMessage("카테고리 설정 저장 중...");
     try {
       const res = await fetch("/api/admin/seo-categories", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: category, pool: poolText }),
+        body: JSON.stringify({ id: category, pool: poolText, imageFolder }),
       });
       const d = await res.json().catch(() => ({}));
       setMessage(d.message || d.error || (res.ok ? "저장 완료" : "저장 실패"));
       if (res.ok) {
         setCategories((prev) =>
-          prev.map((c) => (c.id === category ? { ...c, pool: poolText, isDefault: false } : c))
+          prev.map((c) =>
+            c.id === category ? { ...c, pool: poolText, imageFolder, isDefault: false } : c
+          )
         );
       }
     } catch {
-      setMessage("연관 키워드 저장 중 오류가 발생했습니다.");
+      setMessage("카테고리 설정 저장 중 오류가 발생했습니다.");
     }
     setPoolSaving(false);
   }
@@ -419,7 +426,7 @@ export default function SeoPageManager() {
               disabled={poolSaving}
               className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background disabled:opacity-50"
             >
-              {poolSaving ? "저장 중..." : "연관 키워드 저장"}
+              {poolSaving ? "저장 중..." : "카테고리 설정 저장"}
             </button>
           </div>
           <textarea
@@ -433,6 +440,24 @@ export default function SeoPageManager() {
             이 카테고리로 생성되는 페이지는 위 키워드 중 랜덤 3개를 본문에 자연스럽게 녹이고,
             지역명과 결합한 해시태그(3~5개)도 자동으로 함께 노출됩니다.
           </p>
+
+          {/* 이미지 설정 */}
+          <div className="mt-4 border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground">이미지 폴더</p>
+            <input
+              type="text"
+              value={imageFolder}
+              onChange={(e) => setImageFolder(e.target.value)}
+              placeholder="예: shelter (Supabase Storage seo-images 버킷 안 폴더명)"
+              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+            />
+            <p className="mt-2 text-xs text-muted-fg">
+              Supabase Storage의 <strong className="text-foreground">seo-images</strong> 버킷에 폴더를 만들고
+              이미지를 올린 뒤 폴더명을 입력하세요. 생성 시 그 폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을
+              뽑아 한 줄 1·2·3장, 큰 사진+작은 사진, 좌/우 이미지+글 등 무작위 배치로 본문에 넣습니다.
+              비워두면 이미지 없이 글만 생성됩니다.
+            </p>
+          </div>
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
