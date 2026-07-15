@@ -5,7 +5,7 @@ import {
   resolveRegionDetail,
 } from "@/lib/seo-pages/generate";
 import { getCategory, isValidCategory, parsePool } from "@/lib/seo-pages/categories";
-import { injectImages, listFolderImages, pickImages } from "@/lib/seo-pages/images";
+import { injectImages, listFolderImages } from "@/lib/seo-pages/images";
 import {
   consumeQuota,
   getCategoryImages,
@@ -83,17 +83,13 @@ async function pickRelatedKeywords(
   return pickRandom(candidates, 3);
 }
 
-/** 카테고리 이미지 폴더에서 7~12장 선택 (폴더 미등록/이미지 없음이면 빈 배열) */
-async function pickCategoryImages(
-  categoryId: string | null,
-  seed: string
-): Promise<string[]> {
+/** 카테고리 이미지 폴더의 전체 이미지 목록 (폴더 미등록/이미지 없음이면 빈 배열) */
+async function loadCategoryImagePool(categoryId: string | null): Promise<string[]> {
   if (!categoryId) return [];
   const folders = await getCategoryImages();
   const folder = folders[categoryId];
   if (folder === undefined) return [];
-  const all = await listFolderImages(folder);
-  return pickImages(all, seed);
+  return listFolderImages(folder);
 }
 
 /** 키워드 1개로 SEO 페이지 생성 (쿼터/기간/중복 검사 포함) */
@@ -125,7 +121,7 @@ export async function createSeoPageFromKeyword(
 
   const related = await pickRelatedKeywords(category, keyword);
   const detail = await resolveRegionDetail(keyword);
-  const images = await pickCategoryImages(category, keyword);
+  const imagePool = await loadCategoryImagePool(category);
 
   let generated;
   try {
@@ -139,8 +135,9 @@ export async function createSeoPageFromKeyword(
 
   const slug = await uniqueSlug(keyword, generated.slug);
   const regionName = detail.sido ?? generated.region;
-  const content = injectImages(generated.content, images, keyword);
-  const imageUrl = images[0] ?? null;
+  const injected = injectImages(generated.content, imagePool, keyword);
+  const content = injected.html;
+  const imageUrl = injected.ogImage;
 
   const { id, error } = await insertSeoPage({
     slug,
