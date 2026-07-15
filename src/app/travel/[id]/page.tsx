@@ -123,16 +123,16 @@ export default async function TravelDetailPage({ params }: Props) {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
       <MarketingBanner />
       <Link href="/travel" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← 동반여행 목록
       </Link>
 
-      <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="relative aspect-[16/10] bg-muted">
-          <RemoteImage src={place.image_url} alt={place.title} sizes="(max-width: 768px) 100vw, 800px" priority />
+      <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card lg:grid lg:grid-cols-2">
+        <div className="relative aspect-[16/10] bg-muted lg:aspect-auto lg:min-h-[360px]">
+          <RemoteImage src={place.image_url} alt={place.title} sizes="(max-width: 1024px) 100vw, 576px" priority />
         </div>
         <div className="p-5 sm:p-8">
           <h1 className="font-display text-2xl font-bold text-foreground">{place.title}</h1>

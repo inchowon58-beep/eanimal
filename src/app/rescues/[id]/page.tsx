@@ -124,19 +124,19 @@ export default async function RescueDetailPage({ params }: Props) {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
       <MarketingBanner />
       <Link href="/rescues" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← 공고 목록
       </Link>
 
-      <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card">
-        <div className="relative aspect-[16/10] bg-muted">
+      <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card lg:grid lg:grid-cols-2">
+        <div className="relative aspect-[16/10] bg-muted lg:aspect-auto lg:min-h-[360px]">
           <RemoteImage
             src={animal.image_url}
             alt={`${region} ${kind} 구조 사진`}
-            sizes="(max-width: 768px) 100vw, 800px"
+            sizes="(max-width: 1024px) 100vw, 576px"
             priority
           />
         </div>
