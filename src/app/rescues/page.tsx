@@ -7,7 +7,6 @@ import { listRescues } from "@/lib/rescues/queries";
 import { buildRescueListSeo } from "@/lib/rescues/seo";
 import { formatHappenDt, sexLabel } from "@/lib/rescues/types";
 import { SITE } from "@/lib/site";
-import { countSeoChars } from "@/lib/places/seo-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -101,8 +100,7 @@ export default async function RescuesPage({ searchParams }: Props) {
 
       <section className="seo-body mt-12 rounded-xl border border-border bg-card p-5 sm:p-8">
         <h2 className="font-display text-lg font-semibold text-foreground">구조동물 공고 안내</h2>
-        <p className="mt-1 text-xs text-muted-fg">본문 약 {countSeoChars(seo).toLocaleString("ko-KR")}자</p>
-        <div className="mt-5">
+        <div className="mt-4">
           {paragraphs.map((para) => (
             <p key={para.slice(0, 24)}>{para}</p>
           ))}

@@ -2,17 +2,47 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
+import JsonLd from "@/components/seo/JsonLd";
+import KeywordTags from "@/components/seo/KeywordTags";
+import RegionalRelated from "@/components/seo/RegionalRelated";
 import { getPlaceById } from "@/lib/places/queries";
-import {
-  buildPlaceDetailSeoCopy,
-  countSeoChars,
-} from "@/lib/places/seo-copy";
+import { buildPlaceDetailSeoCopy } from "@/lib/places/seo-copy";
+import { cityStem, sidoShort } from "@/lib/seo/region-keywords";
 import { SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+}
+
+const SCHEMA_TYPE: Record<string, string> = {
+  동물병원: "VeterinaryCare",
+  동물약국: "Pharmacy",
+  동물장묘업: "LocalBusiness",
+};
+
+function placeHashtags(
+  category: string,
+  sido: string | null,
+  sigungu: string | null
+): string[] {
+  const city = cityStem(sigungu);
+  const short = sidoShort(sido);
+  const tags: string[] = [];
+  const push = (s: string) => {
+    const v = s.replace(/\s+/g, "");
+    if (v && !tags.includes(v)) tags.push(v);
+  };
+  if (city) {
+    push(`${city}${category}`);
+    push(`${city}반려동물${category === "동물병원" ? "병원" : category === "동물약국" ? "약국" : "장묘"}`);
+  }
+  if (short) push(`${short}${category}`);
+  if (sido) push(`${sido}${category}`);
+  push(`${category}추천`);
+  push(`반려동물${category}`);
+  return tags.slice(0, 12);
 }
 
 export async function generateMetadata({
@@ -22,9 +52,27 @@ export async function generateMetadata({
   const place = await getPlaceById(id);
   if (!place) return { title: "시설을 찾을 수 없습니다" };
   const region = [place.sido, place.sigungu].filter(Boolean).join(" ");
+  const title = `${place.title} · ${place.category}`;
+  const description = `${region} ${place.category} ${place.title} 정보 — ${SITE.name}`;
+  const canonical = `/places/${place.id}`;
   return {
-    title: `${place.title} · ${place.category}`,
-    description: `${region} ${place.category} ${place.title} 인허가 정보 — ${SITE.name}`,
+    title,
+    description,
+    keywords: placeHashtags(place.category, place.sido, place.sigungu),
+    alternates: { canonical },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: canonical,
+      siteName: SITE.name,
+      locale: "ko_KR",
+      images: [{ url: "/logo.png", alt: SITE.name }],
+    },
+    other: {
+      "geo.region": "KR",
+      "geo.placename": region || "전국",
+    },
   };
 }
 
@@ -39,11 +87,41 @@ export default async function PlaceDetailPage({ params }: PageProps) {
 
   const open = isOpen(place.status);
   const address = place.address_road || place.address_jibun || "주소 미등록";
+  const region = [place.sido, place.sigungu].filter(Boolean).join(" ") || "전국";
   const seo = buildPlaceDetailSeoCopy(place);
   const paragraphs = seo.split("\n\n").filter(Boolean);
+  const hashtags = placeHashtags(place.category, place.sido, place.sigungu);
+
+  const jsonLd: Record<string, unknown>[] = [
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "홈", item: SITE.url },
+        { "@type": "ListItem", position: 2, name: "시설 목록", item: `${SITE.url}/places` },
+        { "@type": "ListItem", position: 3, name: place.title },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": SCHEMA_TYPE[place.category] || "LocalBusiness",
+      name: place.title,
+      inLanguage: "ko-KR",
+      url: `${SITE.url}/places/${place.id}`,
+      ...(place.phone ? { telephone: place.phone } : {}),
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "KR",
+        addressRegion: place.sido || undefined,
+        addressLocality: place.sigungu || undefined,
+        streetAddress: address,
+      },
+    },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+      <JsonLd data={jsonLd} />
       <MarketingBanner />
 
       <div className="mt-6 mb-4">
@@ -96,9 +174,7 @@ export default async function PlaceDetailPage({ params }: PageProps) {
           </div>
           <div className="rounded-xl border border-border bg-muted/40 p-4">
             <dt className="text-xs font-medium text-muted-fg">지역</dt>
-            <dd className="mt-1 text-sm text-foreground">
-              {[place.sido, place.sigungu].filter(Boolean).join(" ") || "미상"}
-            </dd>
+            <dd className="mt-1 text-sm text-foreground">{region}</dd>
           </div>
           <div className="rounded-xl border border-border bg-muted/40 p-4">
             <dt className="text-xs font-medium text-muted-fg">인허가 번호</dt>
@@ -111,15 +187,16 @@ export default async function PlaceDetailPage({ params }: PageProps) {
         <h2 className="font-display text-lg font-semibold text-foreground">
           {place.title} 지역 인프라 안내
         </h2>
-        <p className="mt-1 text-xs text-muted-fg">
-          본문 글자 수(공백 제외) 약 {countSeoChars(seo).toLocaleString("ko-KR")}자
-        </p>
-        <div className="mt-5">
+        <div className="mt-4">
           {paragraphs.map((p) => (
             <p key={p.slice(0, 40)}>{p}</p>
           ))}
         </div>
       </section>
+
+      <KeywordTags title={`${region} ${place.category} 관련 검색어`} tags={hashtags} />
+
+      <RegionalRelated sido={place.sido} sigungu={place.sigungu} exclude={{ place: place.id }} />
     </div>
   );
 }

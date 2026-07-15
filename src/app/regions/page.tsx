@@ -7,7 +7,7 @@ import {
   SIDO_LIST,
 } from "@/lib/regions";
 import { SITE } from "@/lib/site";
-import { buildPlacesListSeoCopy, countSeoChars } from "@/lib/places/seo-copy";
+import { buildPlacesListSeoCopy } from "@/lib/places/seo-copy";
 
 export const revalidate = 3600;
 
@@ -48,10 +48,7 @@ export default async function RegionsIndexPage() {
         <h2 className="font-display text-lg font-semibold text-foreground">
           전국 지역 인프라 안내
         </h2>
-        <p className="mt-1 text-xs text-muted-fg">
-          본문 글자 수(공백 제외) 약 {countSeoChars(seo).toLocaleString("ko-KR")}자
-        </p>
-        <div className="mt-5">
+        <div className="mt-4">
           {paragraphs.map((p) => (
             <p key={p.slice(0, 32)}>{p}</p>
           ))}

@@ -6,7 +6,6 @@ import ListPagination from "@/components/ui/ListPagination";
 import { listTravel } from "@/lib/travel/queries";
 import { buildTravelListSeo } from "@/lib/travel/seo";
 import { SITE } from "@/lib/site";
-import { countSeoChars } from "@/lib/places/seo-copy";
 
 export const dynamic = "force-dynamic";
 
@@ -99,8 +98,7 @@ export default async function TravelPage({ searchParams }: Props) {
 
       <section className="seo-body mt-12 rounded-xl border border-border bg-card p-5 sm:p-8">
         <h2 className="font-display text-lg font-semibold">반려동물 동반여행 안내</h2>
-        <p className="mt-1 text-xs text-muted-fg">본문 약 {countSeoChars(seo).toLocaleString("ko-KR")}자</p>
-        <div className="mt-5">
+        <div className="mt-4">
           {paragraphs.map((para) => (
             <p key={para.slice(0, 24)}>{para}</p>
           ))}
