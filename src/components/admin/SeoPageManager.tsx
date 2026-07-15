@@ -83,6 +83,8 @@ export default function SeoPageManager() {
   const [poolText, setPoolText] = useState("");
   const [imageFolder, setImageFolder] = useState("");
   const [poolSaving, setPoolSaving] = useState(false);
+  const [imgPreview, setImgPreview] = useState<{ count: number; sample: string[] } | null>(null);
+  const [imgChecking, setImgChecking] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
@@ -162,6 +164,7 @@ export default function SeoPageManager() {
       setPoolText(row.pool);
       setImageFolder(row.imageFolder || "");
     }
+    setImgPreview(null);
   }, [categories, category]);
 
   const serviceActive = !quota || quota.service.active;
@@ -293,6 +296,31 @@ export default function SeoPageManager() {
       setMessage("카테고리 설정 저장 중 오류가 발생했습니다.");
     }
     setPoolSaving(false);
+  }
+
+  async function checkImages() {
+    setImgChecking(true);
+    setImgPreview(null);
+    try {
+      const res = await fetch(
+        `/api/admin/seo-categories?folder=${encodeURIComponent(imageFolder)}`,
+        { cache: "no-store" }
+      );
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setImgPreview({ count: d.count || 0, sample: d.sample || [] });
+        setMessage(
+          d.count > 0
+            ? `이미지 ${d.count}장을 찾았습니다.`
+            : "이미지를 찾지 못했습니다. 버킷/폴더명·공개설정을 확인하세요."
+        );
+      } else {
+        setMessage(d.error || "이미지 확인 실패");
+      }
+    } catch {
+      setMessage("이미지 확인 중 오류가 발생했습니다.");
+    }
+    setImgChecking(false);
   }
 
   async function deletePage(id: string) {
@@ -444,19 +472,59 @@ export default function SeoPageManager() {
           {/* 이미지 설정 */}
           <div className="mt-4 border-t border-border pt-4">
             <p className="text-sm font-medium text-foreground">이미지 폴더</p>
-            <input
-              type="text"
-              value={imageFolder}
-              onChange={(e) => setImageFolder(e.target.value)}
-              placeholder="예: shelter (Supabase Storage seo-images 버킷 안 폴더명)"
-              className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-            />
+            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={imageFolder}
+                onChange={(e) => setImageFolder(e.target.value)}
+                placeholder="예: shelter (seo-images 버킷 안 폴더명)"
+                className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+              />
+              <button
+                type="button"
+                onClick={checkImages}
+                disabled={imgChecking}
+                className="shrink-0 rounded-xl border border-accent px-4 py-2.5 text-sm font-bold text-accent disabled:opacity-50"
+              >
+                {imgChecking ? "확인 중..." : "이미지 확인"}
+              </button>
+            </div>
             <p className="mt-2 text-xs text-muted-fg">
-              Supabase Storage의 <strong className="text-foreground">seo-images</strong> 버킷에 폴더를 만들고
-              이미지를 올린 뒤 폴더명을 입력하세요. 생성 시 그 폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을
-              뽑아 한 줄 1·2·3장, 큰 사진+작은 사진, 좌/우 이미지+글 등 무작위 배치로 본문에 넣습니다.
-              비워두면 이미지 없이 글만 생성됩니다.
+              폴더명만 입력하세요(예: <strong className="text-foreground">shelter</strong>). 전체 URL을 붙여넣어도 인식합니다.
+              <br />
+              Supabase Storage의 <strong className="text-foreground">seo-images</strong> 버킷(공개)에 폴더를 만들어 이미지를 올린 뒤,
+              폴더명을 입력하고 <strong className="text-foreground">이미지 확인</strong>으로 몇 장 잡히는지 확인하세요. 생성 시 그
+              폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을 뽑아 한 줄 1·2·3장, 큰 사진+작은 사진,
+              좌/우 이미지+글 등 무작위 배치로 본문에 넣습니다. 비워두면 이미지 없이 글만 생성됩니다.
             </p>
+            {imgPreview && (
+              <div className="mt-3 rounded-xl border border-border bg-background p-3">
+                <p className="text-xs font-medium text-foreground">
+                  감지된 이미지:{" "}
+                  <span className={imgPreview.count > 0 ? "text-accent" : "text-danger"}>
+                    {imgPreview.count}장
+                  </span>
+                </p>
+                {imgPreview.sample.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {imgPreview.sample.map((u) => (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        key={u}
+                        src={u}
+                        alt=""
+                        className="h-14 w-14 rounded-lg border border-border object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
+                {imgPreview.count === 0 && (
+                  <p className="mt-1 text-xs text-danger">
+                    버킷명(seo-images)·폴더명·공개(public) 설정, 그리고 마이그레이션 실행 여부를 확인하세요.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

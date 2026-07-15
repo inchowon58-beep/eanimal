@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { SEO_CATEGORIES, isValidCategory } from "@/lib/seo-pages/categories";
+import { listFolderImages } from "@/lib/seo-pages/images";
 import {
   getCategoryImages,
   getCategoryPools,
@@ -13,9 +14,16 @@ function unauthorized() {
   return NextResponse.json({ ok: false, error: "인증이 필요합니다." }, { status: 401 });
 }
 
-/** 카테고리 목록 + 저장된 풀/이미지폴더(없으면 기본값) 반환 */
-export async function GET() {
+/** 카테고리 목록 + 저장된 풀/이미지폴더(없으면 기본값) 반환. ?folder= 있으면 이미지 미리보기. */
+export async function GET(req: Request) {
   if (!(await isAdminLoggedIn())) return unauthorized();
+
+  const folderParam = new URL(req.url).searchParams.get("folder");
+  if (folderParam !== null) {
+    const urls = await listFolderImages(folderParam);
+    return NextResponse.json({ ok: true, count: urls.length, sample: urls.slice(0, 8) });
+  }
+
   const [pools, images] = await Promise.all([getCategoryPools(), getCategoryImages()]);
   const categories = SEO_CATEGORIES.map((c) => ({
     id: c.id,

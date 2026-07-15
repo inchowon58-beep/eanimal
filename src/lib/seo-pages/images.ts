@@ -29,13 +29,42 @@ function shuffle<T>(arr: T[], rng: () => number): T[] {
   return a;
 }
 
+/**
+ * 입력값에서 버킷/폴더 경로 해석.
+ * - "shelter" → { bucket: 기본, prefix: "shelter" }
+ * - 전체 public URL(.../object/public/<bucket>/<path>) → 그 버킷/경로
+ * - "bucket:/folder" 또는 "bucket:folder" → 명시 버킷
+ */
+function parseFolderInput(input: string | null | undefined): { bucket: string; prefix: string } {
+  const raw = (input || "").trim();
+  if (!raw) return { bucket: BUCKET, prefix: "" };
+
+  const marker = "/storage/v1/object/public/";
+  const idx = raw.indexOf(marker);
+  if (idx >= 0) {
+    const rest = raw.slice(idx + marker.length).replace(/^\/+|\/+$/g, "");
+    const [bucket, ...parts] = rest.split("/");
+    return { bucket: bucket || BUCKET, prefix: parts.join("/") };
+  }
+
+  const colon = raw.indexOf(":");
+  if (colon > 0 && !raw.startsWith("http")) {
+    return {
+      bucket: raw.slice(0, colon).trim(),
+      prefix: raw.slice(colon + 1).replace(/^\/+|\/+$/g, ""),
+    };
+  }
+
+  return { bucket: BUCKET, prefix: raw.replace(/^\/+|\/+$/g, "") };
+}
+
 /** Supabase Storage 폴더의 이미지 public URL 목록 */
 export async function listFolderImages(folder: string | null | undefined): Promise<string[]> {
-  const f = (folder || "").trim().replace(/^\/+|\/+$/g, "");
+  const { bucket, prefix } = parseFolderInput(folder);
   const supabase = getSupabaseService() || getSupabaseServer();
   if (!supabase) return [];
   try {
-    const { data, error } = await supabase.storage.from(BUCKET).list(f || undefined, {
+    const { data, error } = await supabase.storage.from(bucket).list(prefix || undefined, {
       limit: 300,
       sortBy: { column: "name", order: "asc" },
     });
@@ -43,8 +72,8 @@ export async function listFolderImages(folder: string | null | undefined): Promi
     const urls: string[] = [];
     for (const item of data) {
       if (!item.name || !IMG_RE.test(item.name)) continue;
-      const path = f ? `${f}/${item.name}` : item.name;
-      const pub = supabase.storage.from(BUCKET).getPublicUrl(path);
+      const path = prefix ? `${prefix}/${item.name}` : item.name;
+      const pub = supabase.storage.from(bucket).getPublicUrl(path);
       if (pub.data.publicUrl) urls.push(pub.data.publicUrl);
     }
     return urls;
