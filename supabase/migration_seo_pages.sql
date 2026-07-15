@@ -27,11 +27,13 @@ create table if not exists public.seo_pages (
   faqs jsonb not null default '[]',
   image_url text,
   hidden boolean not null default false,
+  copied_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
 create index if not exists seo_pages_created_idx on public.seo_pages (created_at desc);
 create index if not exists seo_pages_hidden_idx on public.seo_pages (hidden);
+create index if not exists seo_pages_copied_created_idx on public.seo_pages (copied_at, created_at);
 
 -- 생성 대기열(잡)
 create table if not exists public.seo_jobs (

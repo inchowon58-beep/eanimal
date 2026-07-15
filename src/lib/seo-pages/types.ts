@@ -14,6 +14,7 @@ export interface SeoPage {
   faqs: SeoFaq[];
   image_url: string | null;
   hidden: boolean;
+  copied_at: string | null;
   created_at: string;
   updated_at: string;
 }

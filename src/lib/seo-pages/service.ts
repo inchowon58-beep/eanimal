@@ -132,6 +132,7 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
     faqs: generated.faqs,
     image_url: null,
     hidden: false,
+    copied_at: null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };

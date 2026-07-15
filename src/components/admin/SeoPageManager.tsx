@@ -9,6 +9,14 @@ interface SeoPageRow {
   keyword: string;
   title: string;
   created_at: string;
+  copied_at?: string | null;
+}
+
+interface CopyState {
+  items: { id: string; slug: string }[];
+  total: number;
+  copied: number;
+  remaining: number;
 }
 
 interface JobRow {
@@ -60,6 +68,8 @@ export default function SeoPageManager() {
   const [queueView, setQueueView] = useState<QueueView>("pending");
   const [listPage, setListPage] = useState(1);
 
+  const [copyState, setCopyState] = useState<CopyState | null>(null);
+
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -68,10 +78,11 @@ export default function SeoPageManager() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [pagesRes, queueRes, quotaRes] = await Promise.all([
+      const [pagesRes, queueRes, quotaRes, copyRes] = await Promise.all([
         fetch("/api/admin/seo-pages", { cache: "no-store" }),
         fetch("/api/admin/seo-queue", { cache: "no-store" }),
         fetch("/api/admin/seo-quota", { cache: "no-store" }),
+        fetch("/api/admin/seo-pages/copy-batch", { cache: "no-store" }),
       ]);
       if (pagesRes.status === 401) {
         window.location.href = "/admin/login";
@@ -88,6 +99,15 @@ export default function SeoPageManager() {
         setPendingText(d.pendingText || "");
       }
       if (quotaRes.ok) setQuota(await quotaRes.json());
+      if (copyRes.ok) {
+        const d = await copyRes.json();
+        setCopyState({
+          items: d.items || [],
+          total: d.total || 0,
+          copied: d.copied || 0,
+          remaining: d.remaining || 0,
+        });
+      }
     } catch {
       setMessage("데이터 로드 실패");
     }
@@ -209,6 +229,52 @@ export default function SeoPageManager() {
     if (!confirm("이 SEO 페이지를 삭제하시겠습니까?")) return;
     await fetch(`/api/admin/seo-pages?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     await loadData();
+  }
+
+  async function copyBatchUrls() {
+    if (busy) return;
+    const items = copyState?.items ?? [];
+    if (items.length === 0) {
+      setMessage("복사할 새 주소가 없습니다. (모두 복사됨)");
+      return;
+    }
+    const origin = window.location.origin;
+    const text = items.map((i) => `${origin}/guide/${i.slug}`).join("\n");
+    setBusy(true);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      setBusy(false);
+      setMessage("클립보드 복사에 실패했습니다. 브라우저 권한을 확인하세요.");
+      return;
+    }
+    try {
+      await fetch("/api/admin/seo-pages/copy-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: items.map((i) => i.id) }),
+      });
+      setMessage(`${items.length}개 주소를 복사했습니다. 다음 복사 시 제외됩니다.`);
+      await loadData();
+    } catch {
+      setMessage("복사 기록 저장에 실패했습니다.");
+    }
+    setBusy(false);
+  }
+
+  async function resetCopyHistory() {
+    if (!confirm("복사 기록을 초기화하면 모든 주소가 다시 복사 대상이 됩니다. 계속할까요?")) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await fetch("/api/admin/seo-pages/copy-batch", { method: "DELETE" });
+      setMessage("복사 기록을 초기화했습니다.");
+      await loadData();
+    } catch {
+      setMessage("초기화에 실패했습니다.");
+    }
+    setBusy(false);
   }
 
   async function copyLink(slug: string, id: string) {
@@ -473,6 +539,34 @@ export default function SeoPageManager() {
       {/* 생성된 페이지 */}
       <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
         <h2 className="font-semibold text-foreground">생성된 SEO 페이지 ({pages.length})</h2>
+
+        <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
+          <button
+            type="button"
+            onClick={copyBatchUrls}
+            disabled={busy || !copyState || copyState.remaining === 0}
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
+          >
+            도메인주소복사{copyState ? ` (다음 ${Math.min(50, copyState.remaining)}개)` : ""}
+          </button>
+          <span className="text-xs text-muted-fg">
+            미복사 <strong className="text-foreground">{copyState?.remaining ?? 0}</strong>개 · 복사됨{" "}
+            {copyState?.copied ?? 0}개 · 전체 {copyState?.total ?? 0}개
+          </span>
+          <button
+            type="button"
+            onClick={resetCopyHistory}
+            disabled={busy}
+            className="ml-auto rounded-lg border border-border px-3 py-1.5 text-xs text-muted-fg hover:text-foreground disabled:opacity-50"
+          >
+            복사기록 초기화
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-muted-fg">
+          오래된 페이지부터 한 번에 최대 50개씩, 이미 복사한 주소는 제외하고 전체 URL을 한 줄에 하나씩
+          클립보드에 복사합니다.
+        </p>
+
         {loading ? (
           <p className="mt-4 text-sm text-muted-fg">로딩 중...</p>
         ) : pages.length === 0 ? (
@@ -486,7 +580,14 @@ export default function SeoPageManager() {
                   className="flex flex-col gap-3 rounded-xl border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground">{p.title}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {p.title}
+                      {p.copied_at && (
+                        <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
+                          복사됨
+                        </span>
+                      )}
+                    </p>
                     <p className="mt-1 break-all text-xs text-muted-fg">
                       {p.keyword} · /guide/{p.slug}
                     </p>

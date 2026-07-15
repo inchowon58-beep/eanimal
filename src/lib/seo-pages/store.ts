@@ -2,7 +2,7 @@ import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
 import type { SeoJob, SeoPage } from "@/lib/seo-pages/types";
 
 const PAGE_COLS =
-  "id, slug, keyword, region_name, title, description, content, faqs, image_url, hidden, created_at, updated_at";
+  "id, slug, keyword, region_name, title, description, content, faqs, image_url, hidden, copied_at, created_at, updated_at";
 const JOB_COLS =
   "id, keyword, normalized_keyword, status, error, page_id, slug, requested_at, started_at, completed_at";
 
@@ -56,7 +56,7 @@ export async function keywordExists(normalizedKeyword: string): Promise<boolean>
 }
 
 export async function insertSeoPage(
-  page: Omit<SeoPage, "id" | "created_at" | "updated_at" | "hidden">
+  page: Omit<SeoPage, "id" | "created_at" | "updated_at" | "hidden" | "copied_at">
 ): Promise<{ id: string | null; error: string | null }> {
   const supabase = getSupabaseService();
   if (!supabase) return { id: null, error: "service role 키가 필요합니다." };
@@ -83,6 +83,62 @@ export async function countSeoPages(): Promise<number> {
     .select("id", { count: "exact", head: true })
     .eq("hidden", false);
   return count ?? 0;
+}
+
+/* ---------- 주소 일괄 복사 ---------- */
+
+/** 아직 복사하지 않은 페이지를 오래된 순으로 최대 limit개 */
+export async function getUncopiedBatch(
+  limit = 50
+): Promise<{ id: string; slug: string }[]> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("seo_pages")
+    .select("id, slug")
+    .eq("hidden", false)
+    .is("copied_at", null)
+    .order("created_at", { ascending: true })
+    .limit(limit);
+  return (data ?? []) as { id: string; slug: string }[];
+}
+
+export async function markCopied(ids: string[]): Promise<{ error: string | null }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { error: "service role 키가 필요합니다." };
+  if (ids.length === 0) return { error: null };
+  const { error } = await supabase
+    .from("seo_pages")
+    .update({ copied_at: new Date().toISOString() })
+    .in("id", ids);
+  return { error: error?.message ?? null };
+}
+
+export async function resetCopied(): Promise<{ error: string | null }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { error: "service role 키가 필요합니다." };
+  const { error } = await supabase
+    .from("seo_pages")
+    .update({ copied_at: null })
+    .not("copied_at", "is", null);
+  return { error: error?.message ?? null };
+}
+
+export async function getCopyStats(): Promise<{ total: number; copied: number }> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return { total: 0, copied: 0 };
+  const [{ count: total }, { count: copied }] = await Promise.all([
+    supabase
+      .from("seo_pages")
+      .select("id", { count: "exact", head: true })
+      .eq("hidden", false),
+    supabase
+      .from("seo_pages")
+      .select("id", { count: "exact", head: true })
+      .eq("hidden", false)
+      .not("copied_at", "is", null),
+  ]);
+  return { total: total ?? 0, copied: copied ?? 0 };
 }
 
 export async function listSeoPageSlugs(from: number, to: number) {
