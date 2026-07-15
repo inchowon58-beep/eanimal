@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processNextGenerationJob } from "@/lib/seo-pages/service";
+import { verifyWorkerRequest } from "@/lib/seo-pages/worker-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,28 +12,8 @@ export const maxDuration = 300;
  *       또는 ?secret= (기존 폼스키 VM 토큰과 호환)
  * 반환: 429(쿼터/기간, Retry-After) · 200(생성/비어있음) · 503(오류)
  */
-function authorize(req: Request): boolean {
-  const secrets = [
-    process.env.CRON_SECRET,
-    process.env.SYNC_SECRET,
-    process.env.COLLECTION_WORKER_SECRET,
-  ].filter((s): s is string => Boolean(s && s.trim()));
-
-  if (secrets.length === 0) {
-    return (
-      process.env.NODE_ENV === "development" && process.env.ALLOW_DEV_SYNC === "1"
-    );
-  }
-
-  const auth = req.headers.get("authorization");
-  const querySecret = new URL(req.url).searchParams.get("secret");
-  return secrets.some(
-    (secret) => auth === `Bearer ${secret}` || querySecret === secret
-  );
-}
-
 export async function POST(req: Request) {
-  if (!authorize(req)) {
+  if (!verifyWorkerRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

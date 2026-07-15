@@ -151,12 +151,17 @@ export interface ProcessResult {
 }
 
 /** KST 자정까지 남은 초 */
-function secondsUntilKstMidnight(): number {
+export function secondsUntilKstMidnight(): number {
   const now = new Date();
   const kstNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
   const next = new Date(kstNow);
   next.setHours(24, 0, 0, 0);
   return Math.max(60, Math.ceil((next.getTime() - kstNow.getTime()) / 1000));
+}
+
+/** 다음 발행 가능 시각(KST 자정) ISO */
+export function nextKstMidnightIso(): string {
+  return new Date(Date.now() + secondsUntilKstMidnight() * 1000).toISOString();
 }
 
 /** VM 워커: 대기열에서 1개 꺼내 생성 (응답은 폼스키 VM 규격과 호환) */
