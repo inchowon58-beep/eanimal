@@ -28,13 +28,17 @@ export type QuickServiceId =
   | "funeral"
   | "travel"
   | "rescue"
-  | "regions";
+  | "regions"
+  | "grooming"
+  | "cafe"
+  | "shop";
 
 export const QUICK_SERVICES: Array<{
   id: QuickServiceId;
   label: string;
   href: string;
   tone: string;
+  soon?: boolean;
 }> = [
   {
     id: "hospital",
@@ -65,6 +69,27 @@ export const QUICK_SERVICES: Array<{
     label: "구조공고",
     href: "/rescues",
     tone: "bg-amber-50 text-amber-900",
+  },
+  {
+    id: "grooming",
+    label: "미용학원",
+    href: "#",
+    tone: "bg-rose-50 text-rose-800",
+    soon: true,
+  },
+  {
+    id: "cafe",
+    label: "애견카페",
+    href: "#",
+    tone: "bg-orange-50 text-orange-800",
+    soon: true,
+  },
+  {
+    id: "shop",
+    label: "애견샵",
+    href: "#",
+    tone: "bg-violet-50 text-violet-800",
+    soon: true,
   },
   {
     id: "regions",

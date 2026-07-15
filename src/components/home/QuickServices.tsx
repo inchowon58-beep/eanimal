@@ -64,31 +64,98 @@ function ServiceGlyph({ id }: { id: QuickServiceId }) {
           <circle cx="12" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.75" />
         </svg>
       );
+    case "grooming":
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="6" cy="7" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+          <circle cx="6" cy="17" r="2.5" stroke="currentColor" strokeWidth="1.6" />
+          <path
+            d="m8 8.5 11 8.5M8 15.5 19 7"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
+    case "cafe":
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M5 8h11v5a4 4 0 0 1-4 4H9a4 4 0 0 1-4-4V8Z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          />
+          <path d="M16 9h2.5a2 2 0 0 1 0 4H16" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M8 3.5v2M11 3.5v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M4 20h13" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
+    case "shop":
+      return (
+        <svg className={common} viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M6 8h12l-1 12H7L6 8Z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9 8a3 3 0 0 1 6 0"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      );
   }
 }
 
 export default function QuickServices({ className = "" }: { className?: string }) {
   return (
     <ul
-      className={`grid grid-cols-3 gap-3 sm:grid-cols-6 sm:gap-4 ${className}`}
+      className={`grid grid-cols-3 gap-3 sm:grid-cols-9 sm:gap-2 ${className}`}
     >
-      {QUICK_SERVICES.map((s) => (
-        <li key={s.id}>
-          <Link
-            href={s.href}
-            className="flex flex-col items-center gap-2 rounded-xl px-1 py-2 text-center transition hover:bg-muted/70"
-          >
-            <span
-              className={`flex h-12 w-12 items-center justify-center rounded-2xl ${s.tone} sm:h-14 sm:w-14`}
-            >
-              <ServiceGlyph id={s.id} />
+      {QUICK_SERVICES.map((s) => {
+        const icon = (
+          <>
+            <span className="relative">
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-2xl ${s.tone} sm:h-14 sm:w-14`}
+              >
+                <ServiceGlyph id={s.id} />
+              </span>
+              {s.soon && (
+                <span className="absolute -right-1 -top-1 rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-semibold leading-none text-accent-fg">
+                  준비중
+                </span>
+              )}
             </span>
             <span className="text-[11px] font-medium leading-tight text-foreground sm:text-xs">
               {s.label}
             </span>
-          </Link>
-        </li>
-      ))}
+          </>
+        );
+
+        return (
+          <li key={s.id}>
+            {s.soon ? (
+              <span
+                aria-disabled
+                className="flex cursor-default flex-col items-center gap-2 rounded-xl px-1 py-2 text-center opacity-70"
+              >
+                {icon}
+              </span>
+            ) : (
+              <Link
+                href={s.href}
+                className="flex flex-col items-center gap-2 rounded-xl px-1 py-2 text-center transition hover:bg-muted/70"
+              >
+                {icon}
+              </Link>
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
