@@ -168,6 +168,7 @@ export default async function GuidePage({ params }: Props) {
       <RelatedGuides
         category={page.category}
         currentSlug={page.slug}
+        keyword={page.keyword}
         categoryLabel={getCategory(page.category)?.label}
       />
 

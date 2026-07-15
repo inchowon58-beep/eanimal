@@ -4,11 +4,12 @@ import { listCategoryGuidePool } from "@/lib/seo-pages/store";
 interface Props {
   category: string | null | undefined;
   currentSlug: string;
+  keyword: string;
   categoryLabel?: string;
 }
 
 /** 같은 카테고리에서 생성된 글을 랜덤 30개 가로 스크롤로 노출 (키워드 링크) */
-export default async function RelatedGuides({ category, currentSlug, categoryLabel }: Props) {
+export default async function RelatedGuides({ category, currentSlug, keyword, categoryLabel }: Props) {
   const pool = await listCategoryGuidePool(category, currentSlug, 300);
   if (pool.length === 0) return null;
 
@@ -21,9 +22,11 @@ export default async function RelatedGuides({ category, currentSlug, categoryLab
 
   return (
     <section className="mt-8 rounded-xl border border-border bg-card p-5 sm:p-8">
-      <h2 className="font-display text-lg font-semibold text-foreground">반려동물 관련 정보</h2>
+      <h2 className="font-display text-lg font-semibold text-foreground">
+        {keyword} 관련 다른지역 정보
+      </h2>
       <p className="mt-1 text-xs text-muted-fg">
-        {categoryLabel ? `${categoryLabel} ` : ""}관련해 함께 보면 좋은 정보들을 모았습니다.
+        다른 지역의 {categoryLabel ? `${categoryLabel} ` : ""}관련 정보도 함께 확인해 보세요.
       </p>
 
       <div className="scroll-row mt-5 flex gap-3 overflow-x-auto pb-3">
