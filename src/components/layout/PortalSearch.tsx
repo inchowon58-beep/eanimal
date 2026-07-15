@@ -27,7 +27,8 @@ export default function PortalSearch({
   return (
     <form
       onSubmit={onSubmit}
-      className={`flex w-full items-center gap-2 rounded-full border-2 border-accent bg-card pl-5 shadow-sm focus-within:ring-2 focus-within:ring-accent/25 ${
+      style={{ borderColor: "var(--accent)" }}
+      className={`flex w-full items-center gap-2 rounded-full border-2 bg-card pl-5 shadow-sm focus-within:ring-2 focus-within:ring-accent/25 ${
         large ? "h-12 pr-1.5 sm:h-14" : "h-11 pr-1"
       }`}
     >
