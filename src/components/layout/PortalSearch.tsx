@@ -5,12 +5,6 @@ import { FormEvent, useState } from "react";
 
 type SearchTarget = "places" | "rescues" | "travel";
 
-const TARGETS: { value: SearchTarget; label: string }[] = [
-  { value: "places", label: "시설" },
-  { value: "rescues", label: "구조공고" },
-  { value: "travel", label: "동반여행" },
-];
-
 export default function PortalSearch({
   large = false,
   defaultTarget = "places",
@@ -19,58 +13,56 @@ export default function PortalSearch({
   defaultTarget?: SearchTarget;
 }) {
   const router = useRouter();
-  const [target, setTarget] = useState<SearchTarget>(defaultTarget);
   const [q, setQ] = useState("");
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     const query = q.trim();
     const qs = query ? `?q=${encodeURIComponent(query)}` : "";
-    if (target === "rescues") router.push(`/rescues${qs}`);
-    else if (target === "travel") router.push(`/travel${qs}`);
+    if (defaultTarget === "rescues") router.push(`/rescues${qs}`);
+    else if (defaultTarget === "travel") router.push(`/travel${qs}`);
     else router.push(`/places${qs}`);
   }
 
   return (
     <form
       onSubmit={onSubmit}
-      className={`flex w-full items-stretch overflow-hidden rounded-full border border-border bg-card shadow-sm focus-within:border-accent/50 focus-within:ring-2 focus-within:ring-accent/20 ${
-        large ? "h-12 sm:h-14" : "h-10"
+      className={`flex w-full items-center gap-2 rounded-full border-2 border-accent bg-card pl-5 shadow-sm focus-within:ring-2 focus-within:ring-accent/25 ${
+        large ? "h-12 pr-1.5 sm:h-14" : "h-11 pr-1"
       }`}
     >
-      <label className="sr-only" htmlFor="portal-search-target">
-        검색 대상
-      </label>
-      <select
-        id="portal-search-target"
-        value={target}
-        onChange={(e) => setTarget(e.target.value as SearchTarget)}
-        className={`shrink-0 border-0 border-r border-border bg-muted/60 pl-3 pr-1 text-xs font-medium text-foreground outline-none sm:text-sm ${
-          large ? "sm:pl-4" : ""
-        }`}
-      >
-        {TARGETS.map((t) => (
-          <option key={t.value} value={t.value}>
-            {t.label}
-          </option>
-        ))}
-      </select>
       <input
         type="search"
         name="q"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="시설명·품종·지역·장소명 검색"
-        className="min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-foreground outline-none placeholder:text-muted-fg"
+        placeholder="검색어를 입력하세요!"
+        className={`min-w-0 flex-1 border-0 bg-transparent text-foreground outline-none placeholder:text-muted-fg ${
+          large ? "text-base" : "text-sm"
+        }`}
         autoComplete="off"
       />
       <button
         type="submit"
-        className={`shrink-0 bg-accent font-semibold text-accent-fg transition hover:opacity-90 ${
-          large ? "px-5 text-sm sm:px-6" : "px-4 text-xs"
+        aria-label="검색"
+        className={`flex shrink-0 items-center justify-center rounded-full bg-accent text-accent-fg transition hover:opacity-90 ${
+          large ? "h-10 w-10 sm:h-11 sm:w-11" : "h-8 w-8"
         }`}
       >
-        검색
+        <svg
+          className={large ? "h-5 w-5" : "h-4 w-4"}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+        >
+          <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="m20 20-3.2-3.2"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
       </button>
     </form>
   );
