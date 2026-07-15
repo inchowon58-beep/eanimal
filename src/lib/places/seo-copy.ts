@@ -57,10 +57,6 @@ export function buildPlaceDetailSeoCopy(place: Place): string {
     `${place.title}은(는) ${region}에 위치한 ${place.category}입니다. 현재 공개된 영업 상태는 "${place.status}"이며, 대표 연락처는 ${phone}, 안내 주소는 ${address}입니다.`,
     `${region}에 있는 ${place.category} ${place.title}의 정보입니다. 영업 상태는 "${place.status}", 연락처는 ${phone}, 주소는 ${address}로 안내됩니다.`,
   ];
-  const p2 = [
-    `${region}에서 ${place.category}를 찾을 때는 거리, 영업 여부, 전화 연결 가능성을 먼저 확인하는 경우가 많습니다. ${place.title}의 도로명·지번 주소가 함께 제공되면 내비게이션이나 도보 이동 시 혼선을 줄일 수 있습니다.`,
-    `${place.title}을(를) 방문하기 전에는 영업 시간과 위치를 확인해 두는 것이 좋습니다. ${region} 안에서 비슷한 ${place.category}를 함께 비교해 보면 선택지가 넓어집니다.`,
-  ];
   const p3 = [
     `${place.category} 이용 목적에 따라 준비물이 달라집니다. 진료·처방·장례 예약이 필요할 수 있고, 응급 상황에서는 인근 대체 시설을 함께 알아두면 안심할 수 있습니다. 영업 상태가 바뀌었을 수 있으니 방문 전 전화 문의를 권장합니다.`,
     `필요에 따라 사전 예약이나 상담이 필요할 수 있습니다. 특히 응급 상황을 대비해 ${region} 내 다른 ${place.category} 위치도 미리 확인해 두면 도움이 됩니다.`,
@@ -72,7 +68,6 @@ export function buildPlaceDetailSeoCopy(place: Place): string {
 
   return [
     seededPick(p1, seed),
-    seededPick(p2, seed >> 3),
     seededPick(p3, seed >> 6),
     seededPick(p4, seed >> 9),
   ].join("\n\n");
