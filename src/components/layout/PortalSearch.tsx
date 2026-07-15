@@ -8,9 +8,11 @@ type SearchTarget = "places" | "rescues" | "travel";
 export default function PortalSearch({
   large = false,
   defaultTarget = "places",
+  placeholder = "동물병원, 약국, 동반여행 정보를 검색해 보세요",
 }: {
   large?: boolean;
   defaultTarget?: SearchTarget;
+  placeholder?: string;
 }) {
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -37,7 +39,7 @@ export default function PortalSearch({
         name="q"
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="검색어를 입력하세요!"
+        placeholder={placeholder}
         className={`min-w-0 flex-1 border-0 bg-transparent text-foreground outline-none placeholder:text-muted-fg ${
           large ? "text-base" : "text-sm"
         }`}

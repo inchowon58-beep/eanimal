@@ -8,7 +8,6 @@ import RemoteImage from "@/components/media/RemoteImage";
 import { listPlaces } from "@/lib/places/queries";
 import { listRescues } from "@/lib/rescues/queries";
 import { formatHappenDt, sexLabel } from "@/lib/rescues/types";
-import { SITE } from "@/lib/site";
 import { listTravel } from "@/lib/travel/queries";
 
 export const dynamic = "force-dynamic";
@@ -30,16 +29,10 @@ export default async function HomePage() {
       <section className="border-b border-border bg-[linear-gradient(180deg,#eef6f4_0%,#f8faf9_55%,#ffffff_100%)]">
         <div className="mx-auto max-w-6xl px-4 pb-8 pt-8 sm:px-6 sm:pb-10 sm:pt-10">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold tracking-wide text-accent sm:text-sm">
-              {SITE.tagline}
-            </p>
-            <h1 className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-4xl">
               전국 반려동물 인프라 포털
             </h1>
-            <p className="mt-2 text-sm text-muted-fg sm:text-base">
-              동물병원 · 약국 · 장묘 · 구조공고 · 동반여행을 한곳에서
-            </p>
-            <div className="mx-auto mt-6 max-w-2xl">
+            <div className="mx-auto mt-5 max-w-2xl sm:mt-6">
               <PortalSearch large />
             </div>
           </div>
