@@ -3,6 +3,15 @@ export interface SeoFaq {
   answer: string;
 }
 
+/** 카테고리별 참고 업체정보 (페이지 상단 노출) */
+export interface SeoBusiness {
+  id: string;
+  name: string;
+  phone: string;
+  description: string;
+  image_url: string;
+}
+
 export interface SeoPage {
   id: string;
   slug: string;
