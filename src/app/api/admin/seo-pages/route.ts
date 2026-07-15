@@ -18,14 +18,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   if (!(await isAdminLoggedIn())) return unauthorized();
-  const body = (await req.json().catch(() => null)) as { keyword?: string } | null;
+  const body = (await req.json().catch(() => null)) as {
+    keyword?: string;
+    category?: string | null;
+  } | null;
   const keyword = body?.keyword?.trim();
   if (!keyword) {
     return NextResponse.json({ ok: false, error: "키워드를 입력해 주세요." }, { status: 400 });
   }
 
   try {
-    const page = await createSeoPageFromKeyword(keyword);
+    const page = await createSeoPageFromKeyword(keyword, body?.category ?? null);
     return NextResponse.json({ ok: true, page });
   } catch (e) {
     const status = e instanceof SeoCreateError && e.code === "QUOTA" ? 429 : 500;

@@ -60,6 +60,70 @@ function dedupePush(list: string[], value: string) {
   if (v && !list.includes(v)) list.push(v);
 }
 
+function strHash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) {
+    h = (h << 5) - h + s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h) || 1;
+}
+
+/** 시드 기반 셔플 (SSR에서 매 요청마다 동일한 결과가 나오도록) */
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const a = [...arr];
+  let h = strHash(seed);
+  const rand = () => {
+    h = (h * 1103515245 + 12345) & 0x7fffffff;
+    return h / 0x7fffffff;
+  };
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * SEO 가이드 페이지용 지역 기반 해시태그.
+ * 카테고리 접미 키워드(stems)를 지역명과 결합하고, 시드로 3~5개를 뽑는다.
+ * 예) 충청남도 서산시 + 유기동물 → 서산강아지보호소, 충남유기견보호센터 ...
+ */
+export function buildGuideHashtags(opts: {
+  sido?: string | null;
+  sigungu?: string | null;
+  stems: string[];
+  genericTags?: string[];
+  seed?: string;
+  min?: number;
+  max?: number;
+}): string[] {
+  const { sido, sigungu, stems, genericTags = [], seed = "guide" } = opts;
+  const city = cityStem(sigungu);
+  const short = sidoShort(sido);
+  const broad = broadRegion(sido);
+  const full = sido || null;
+  const regions = [city, short, broad, full].filter((r): r is string => Boolean(r));
+
+  const regional: string[] = [];
+  for (const r of regions) {
+    for (const stem of stems) dedupePush(regional, `${r}${stem}`);
+  }
+
+  const generic: string[] = [];
+  if (!regions.length) for (const stem of stems) dedupePush(generic, stem);
+  for (const g of genericTags) dedupePush(generic, g);
+
+  // 지역 결합 태그를 우선하되, 지역/일반을 섞어서 다양성 확보
+  const pool = [...seededShuffle(regional, seed), ...seededShuffle(generic, `${seed}-g`)];
+  if (!pool.length) return [];
+
+  const min = opts.min ?? 3;
+  const max = opts.max ?? 5;
+  const count = min + (strHash(`${seed}-n`) % (max - min + 1));
+  return pool.slice(0, Math.min(count, pool.length));
+}
+
 /**
  * 구조공고용 지역 + 키워드 해시태그.
  * 예) 경상남도 거제시 → 거제강아지보호소, 거제유기견보호센터, 경상도유기견보호센터,

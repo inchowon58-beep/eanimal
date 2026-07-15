@@ -56,6 +56,42 @@ export async function saveSeoSettings(input: {
   return { error: error?.message ?? null };
 }
 
+/** 카테고리별 연관 키워드 풀 조회 ({ [categoryId]: "키워드,..." }) */
+export async function getCategoryPools(): Promise<Record<string, string>> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return {};
+  const { data, error } = await supabase
+    .from("seo_settings")
+    .select("category_pools")
+    .eq("id", "default")
+    .maybeSingle();
+  if (error || !data?.category_pools) return {};
+  const pools = data.category_pools as Record<string, unknown>;
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(pools)) {
+    if (typeof v === "string") out[k] = v;
+  }
+  return out;
+}
+
+/** 카테고리 1개의 풀 저장 */
+export async function saveCategoryPool(
+  categoryId: string,
+  pool: string
+): Promise<{ error: string | null }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { error: "service role 키가 필요합니다." };
+  const pools = await getCategoryPools();
+  pools[categoryId] = pool;
+  const { error } = await supabase
+    .from("seo_settings")
+    .upsert(
+      { id: "default", category_pools: pools, updated_at: new Date().toISOString() },
+      { onConflict: "id" }
+    );
+  return { error: error?.message ?? null };
+}
+
 export function computeService(expiresAt: string | null): ServiceStatus {
   if (!expiresAt) {
     // 만료일 미설정 → 무기한 사용 가능

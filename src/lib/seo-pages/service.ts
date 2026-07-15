@@ -1,5 +1,15 @@
-import { buildSlug, generateSeoContent, normalizeKeyword } from "@/lib/seo-pages/generate";
-import { consumeQuota, getQuotaStatus } from "@/lib/seo-pages/settings";
+import {
+  buildSlug,
+  generateSeoContent,
+  normalizeKeyword,
+  resolveRegionDetail,
+} from "@/lib/seo-pages/generate";
+import { getCategory, isValidCategory, parsePool } from "@/lib/seo-pages/categories";
+import {
+  consumeQuota,
+  getCategoryPools,
+  getQuotaStatus,
+} from "@/lib/seo-pages/settings";
 import {
   claimNextPendingJob,
   countPendingJobs,
@@ -45,10 +55,40 @@ async function uniqueSlug(keyword: string, geminiSlug?: string): Promise<string>
   return `${buildSlug(keyword)}-${Date.now().toString(36)}`;
 }
 
+/** 셔플 후 앞 n개 */
+function pickRandom<T>(arr: T[], n: number): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
+
+/** 카테고리 풀에서 키워드와 겹치지 않는 연관 키워드 랜덤 3개 */
+async function pickRelatedKeywords(
+  categoryId: string | null,
+  keyword: string
+): Promise<string[]> {
+  const category = getCategory(categoryId);
+  if (!category) return [];
+  const pools = await getCategoryPools();
+  const poolText = pools[category.id] ?? category.defaultPool;
+  const norm = keyword.replace(/\s+/g, "");
+  const candidates = parsePool(poolText).filter(
+    (k) => k.replace(/\s+/g, "") !== norm
+  );
+  return pickRandom(candidates, 3);
+}
+
 /** 키워드 1개로 SEO 페이지 생성 (쿼터/기간/중복 검사 포함) */
-export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoPage> {
+export async function createSeoPageFromKeyword(
+  rawKeyword: string,
+  categoryId: string | null = null
+): Promise<SeoPage> {
   const keyword = normalizeKeyword(rawKeyword);
   if (!keyword) throw new SeoCreateError("키워드가 비어 있습니다.", "GENERATE");
+  const category = isValidCategory(categoryId) ? categoryId : null;
 
   const quota = await getQuotaStatus();
   if (!quota.service.active) {
@@ -68,9 +108,12 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
     throw new SeoCreateError(`이미 등록된 키워드입니다: ${keyword}`, "DUPLICATE");
   }
 
+  const related = await pickRelatedKeywords(category, keyword);
+  const detail = await resolveRegionDetail(keyword);
+
   let generated;
   try {
-    generated = await generateSeoContent(keyword);
+    generated = await generateSeoContent(keyword, { relatedKeywords: related });
   } catch (e) {
     throw new SeoCreateError(
       e instanceof Error ? e.message : "콘텐츠 생성에 실패했습니다.",
@@ -79,15 +122,19 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
   }
 
   const slug = await uniqueSlug(keyword, generated.slug);
+  const regionName = detail.sido ?? generated.region;
 
   const { id, error } = await insertSeoPage({
     slug,
     keyword,
-    region_name: generated.region,
+    category,
+    region_name: regionName,
+    region_sigungu: detail.sigungu,
     title: generated.title,
     description: generated.description,
     content: generated.content,
     faqs: generated.faqs,
+    keywords: related,
     image_url: null,
   });
 
@@ -133,11 +180,14 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
     id,
     slug,
     keyword,
-    region_name: generated.region,
+    category,
+    region_name: regionName,
+    region_sigungu: detail.sigungu,
     title: generated.title,
     description: generated.description,
     content: generated.content,
     faqs: generated.faqs,
+    keywords: related,
     image_url: null,
     hidden: false,
     copied_at: null,
@@ -204,7 +254,7 @@ export async function processNextGenerationJob(): Promise<ProcessResult> {
   }
 
   try {
-    const page = await createSeoPageFromKeyword(job.keyword);
+    const page = await createSeoPageFromKeyword(job.keyword, job.category);
     await finishJob(job.id, { status: "completed", pageId: page.id, slug: page.slug });
     const remaining = await countPendingJobs();
     return {

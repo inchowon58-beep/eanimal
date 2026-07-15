@@ -3,13 +3,38 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import JsonLd from "@/components/seo/JsonLd";
+import KeywordTags from "@/components/seo/KeywordTags";
+import RegionalRelated from "@/components/seo/RegionalRelated";
+import { getCategory } from "@/lib/seo-pages/categories";
 import { getSeoPageBySlug } from "@/lib/seo-pages/store";
+import { buildGuideHashtags } from "@/lib/seo/region-keywords";
+import type { SeoPage } from "@/lib/seo-pages/types";
 import { SITE } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
+const DEFAULT_STEMS = ["동물병원", "애견카페", "강아지분양", "유기동물보호센터", "애견호텔"];
+const DEFAULT_GENERIC = ["반려동물정보", "강아지정보", "반려견"];
+const LOGO_URL = `${SITE.url.replace(/\/$/, "")}/logo.png`;
+
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+/** 카테고리·지역 기반 해시태그 (제목 포함) */
+function guideTags(page: SeoPage) {
+  const cat = getCategory(page.category);
+  const topic = cat?.topic ?? "반려동물";
+  const tags = buildGuideHashtags({
+    sido: page.region_name,
+    sigungu: page.region_sigungu,
+    stems: cat?.hashtagStems ?? DEFAULT_STEMS,
+    genericTags: cat?.genericTags ?? DEFAULT_GENERIC,
+    seed: page.slug,
+  });
+  const regionLabel = [page.region_name, page.region_sigungu].filter(Boolean).join(" ");
+  const title = `${regionLabel ? `${regionLabel} ` : ""}${topic} 관련 검색어`;
+  return { tags, title };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -19,11 +44,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const canonical = `/guide/${encodeURIComponent(page.slug)}`;
   const description = page.description || `${page.keyword} 관련 정보 안내 — ${SITE.name}`;
-  const ogImages = page.image_url ? [{ url: page.image_url, alt: page.title }] : undefined;
+  const hasImage = Boolean(page.image_url);
+  const ogUrl = page.image_url || LOGO_URL;
+  const ogImages = [{ url: ogUrl, alt: page.title }];
+
+  const { tags } = guideTags(page);
+  const keywords = Array.from(
+    new Set([page.keyword, ...(page.keywords || []), ...tags])
+  );
 
   return {
     title: page.title,
     description,
+    keywords,
     alternates: { canonical },
     openGraph: {
       type: "article",
@@ -35,10 +68,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: ogImages,
     },
     twitter: {
-      card: ogImages ? "summary_large_image" : "summary",
+      card: hasImage ? "summary_large_image" : "summary",
       title: page.title,
       description,
-      images: ogImages?.map((i) => i.url),
+      images: ogImages.map((i) => i.url),
     },
     other: {
       "geo.region": "KR",
@@ -53,6 +86,7 @@ export default async function GuidePage({ params }: Props) {
   if (!page) notFound();
 
   const description = page.description || `${page.keyword} 관련 정보 안내`;
+  const { tags, title: tagsTitle } = guideTags(page);
 
   const jsonLd: Record<string, unknown>[] = [
     {
@@ -125,6 +159,14 @@ export default async function GuidePage({ params }: Props) {
           </dl>
         </section>
       )}
+
+      {tags.length > 0 && <KeywordTags title={tagsTitle} tags={tags} />}
+
+      <RegionalRelated sido={page.region_name} sigungu={page.region_sigungu} />
+
+      <div className="mt-8">
+        <MarketingBanner placement="main_top" />
+      </div>
     </div>
   );
 }

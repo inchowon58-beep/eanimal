@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { SEO_CATEGORIES } from "@/lib/seo-pages/categories";
 
 interface SeoPageRow {
   id: string;
@@ -10,6 +11,14 @@ interface SeoPageRow {
   title: string;
   created_at: string;
   copied_at?: string | null;
+}
+
+interface CategoryRow {
+  id: string;
+  label: string;
+  topic: string;
+  pool: string;
+  isDefault: boolean;
 }
 
 interface CopyState {
@@ -68,6 +77,11 @@ export default function SeoPageManager() {
   const [queueView, setQueueView] = useState<QueueView>("pending");
   const [listPage, setListPage] = useState(1);
 
+  const [category, setCategory] = useState<string>(SEO_CATEGORIES[0].id);
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
+  const [poolText, setPoolText] = useState("");
+  const [poolSaving, setPoolSaving] = useState(false);
+
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -80,7 +94,9 @@ export default function SeoPageManager() {
     try {
       const [pagesRes, queueRes, quotaRes, copyRes] = await Promise.all([
         fetch("/api/admin/seo-pages", { cache: "no-store" }),
-        fetch("/api/admin/seo-queue", { cache: "no-store" }),
+        fetch(`/api/admin/seo-queue?category=${encodeURIComponent(category)}`, {
+          cache: "no-store",
+        }),
         fetch("/api/admin/seo-quota", { cache: "no-store" }),
         fetch("/api/admin/seo-pages/copy-batch", { cache: "no-store" }),
       ]);
@@ -112,11 +128,36 @@ export default function SeoPageManager() {
       setMessage("데이터 로드 실패");
     }
     setLoading(false);
-  }, []);
+  }, [category]);
 
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  // 카테고리 목록 + 저장된 풀 로드 (최초 1회)
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/seo-categories", { cache: "no-store" });
+        if (!res.ok) return;
+        const d = await res.json();
+        if (!alive) return;
+        setCategories(d.categories || []);
+      } catch {
+        /* ignore */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // 선택된 카테고리의 풀을 편집 영역에 반영
+  useEffect(() => {
+    const row = categories.find((c) => c.id === category);
+    if (row) setPoolText(row.pool);
+  }, [categories, category]);
 
   const serviceActive = !quota || quota.service.active;
   const canGenerate = serviceActive && (!quota || quota.remaining > 0);
@@ -144,7 +185,7 @@ export default function SeoPageManager() {
       const res = await fetch("/api/admin/seo-pages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword: keyword.trim() }),
+        body: JSON.stringify({ keyword: keyword.trim(), category }),
       });
       const d = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -172,7 +213,7 @@ export default function SeoPageManager() {
       const res = await fetch("/api/admin/seo-queue", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, category }),
       });
       const d = await res.json().catch(() => ({}));
       setMessage(d.message || d.error || (res.ok ? "등록 완료" : "등록 실패"));
@@ -214,7 +255,7 @@ export default function SeoPageManager() {
       const res = await fetch("/api/admin/seo-queue", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pendingText }),
+        body: JSON.stringify({ text: pendingText, category }),
       });
       const d = await res.json().catch(() => ({}));
       setMessage(d.message || d.error || (res.ok ? "저장 완료" : "저장 실패"));
@@ -223,6 +264,28 @@ export default function SeoPageManager() {
       setMessage("대기열 저장 중 오류가 발생했습니다.");
     }
     setBusy(false);
+  }
+
+  async function savePool() {
+    setPoolSaving(true);
+    setMessage("연관 키워드 저장 중...");
+    try {
+      const res = await fetch("/api/admin/seo-categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: category, pool: poolText }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setMessage(d.message || d.error || (res.ok ? "저장 완료" : "저장 실패"));
+      if (res.ok) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === category ? { ...c, pool: poolText, isDefault: false } : c))
+        );
+      }
+    } catch {
+      setMessage("연관 키워드 저장 중 오류가 발생했습니다.");
+    }
+    setPoolSaving(false);
   }
 
   async function deletePage(id: string) {
@@ -321,6 +384,57 @@ export default function SeoPageManager() {
       {/* 생성 */}
       <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
         <h2 className="font-semibold text-foreground">SEO 페이지 생성</h2>
+
+        {/* 카테고리 선택 */}
+        <p className="mt-4 text-xs font-medium text-muted-fg">카테고리</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {SEO_CATEGORIES.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCategory(c.id)}
+              className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
+                category === c.id
+                  ? "border-accent bg-accent text-white"
+                  : "border-border bg-card text-muted-fg hover:text-foreground"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 연관 키워드 풀 */}
+        <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-medium text-foreground">
+              연관 키워드{" "}
+              <span className="text-xs font-normal text-muted-fg">
+                (쉼표로 구분 · 생성 시 랜덤 3개를 본문·검색 노출에 활용)
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={savePool}
+              disabled={poolSaving}
+              className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background disabled:opacity-50"
+            >
+              {poolSaving ? "저장 중..." : "연관 키워드 저장"}
+            </button>
+          </div>
+          <textarea
+            value={poolText}
+            onChange={(e) => setPoolText(e.target.value)}
+            rows={3}
+            placeholder="예: 강아지보호소, 유기견입양, 유기견보호센터, 강아지무료분양"
+            className="mt-3 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+          />
+          <p className="mt-2 text-xs text-muted-fg">
+            이 카테고리로 생성되는 페이지는 위 키워드 중 랜덤 3개를 본문에 자연스럽게 녹이고,
+            지역명과 결합한 해시태그(3~5개)도 자동으로 함께 노출됩니다.
+          </p>
+        </div>
+
         <div className="mt-4 flex flex-wrap gap-2">
           {(
             [
@@ -421,6 +535,9 @@ export default function SeoPageManager() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-semibold text-foreground">
             생성 대기열
+            <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
+              {SEO_CATEGORIES.find((c) => c.id === category)?.label ?? category}
+            </span>
             {summary && (
               <span className="ml-2 text-xs font-normal text-muted-fg">
                 대기 {summary.pending} · 생성중 {summary.processing} · 완료 {summary.completed} · 실패{" "}
@@ -430,7 +547,7 @@ export default function SeoPageManager() {
           </h2>
           <div className="flex flex-wrap gap-2">
             <a
-              href="/api/admin/seo-queue?download=txt"
+              href={`/api/admin/seo-queue?download=txt&category=${encodeURIComponent(category)}`}
               className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-fg hover:text-foreground"
             >
               TXT 다운로드

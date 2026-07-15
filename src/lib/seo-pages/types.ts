@@ -7,11 +7,14 @@ export interface SeoPage {
   id: string;
   slug: string;
   keyword: string;
+  category: string | null;
   region_name: string | null;
+  region_sigungu: string | null;
   title: string;
   description: string | null;
   content: string;
   faqs: SeoFaq[];
+  keywords: string[];
   image_url: string | null;
   hidden: boolean;
   copied_at: string | null;
@@ -25,6 +28,7 @@ export interface SeoJob {
   id: string;
   keyword: string;
   normalized_keyword: string;
+  category: string | null;
   status: SeoJobStatus;
   error: string | null;
   page_id: string | null;

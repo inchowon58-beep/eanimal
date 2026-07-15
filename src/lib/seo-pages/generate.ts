@@ -39,6 +39,32 @@ export function extractRegion(keyword: string): string | null {
   return null;
 }
 
+/**
+ * 키워드에서 시·도 + 시·군·구까지 해석.
+ * 시·도가 잡히면 해당 시·도의 시군구 목록을 조회해 키워드에 포함된 지명을 찾는다.
+ */
+export async function resolveRegionDetail(
+  keyword: string
+): Promise<{ sido: string | null; sigungu: string | null }> {
+  const sido = extractRegion(keyword);
+  if (!sido) return { sido: null, sigungu: null };
+  const k = keyword.replace(/\s+/g, "");
+  try {
+    const { listSigunguForSido } = await import("@/lib/regions");
+    const list = await listSigunguForSido(sido);
+    for (const sg of list) {
+      const first = sg.trim().split(/\s+/)[0];
+      const stem = first.replace(/(특별자치시|특별시|광역시|자치시|시|군|구)$/, "");
+      if (k.includes(first) || (stem.length >= 2 && k.includes(stem))) {
+        return { sido, sigungu: first };
+      }
+    }
+  } catch {
+    /* DB 미연결 시 시·도만 */
+  }
+  return { sido, sigungu: null };
+}
+
 function asciiSlug(input: string | undefined): string {
   if (!input) return "";
   return input
@@ -115,9 +141,21 @@ async function callGemini(prompt: string, key: string): Promise<string | null> {
   return null;
 }
 
-export async function generateSeoContent(rawKeyword: string): Promise<GeneratedContent> {
+export interface GenerateOptions {
+  /** 본문에 자연스럽게 녹여 넣을 연관 키워드 (카테고리 풀에서 랜덤 추출) */
+  relatedKeywords?: string[];
+}
+
+export async function generateSeoContent(
+  rawKeyword: string,
+  options: GenerateOptions = {}
+): Promise<GeneratedContent> {
   const keyword = normalizeKeyword(rawKeyword);
   const region = extractRegion(keyword);
+  const related = (options.relatedKeywords || [])
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .slice(0, 3);
   const key = process.env.GEMINI_API_KEY?.trim() || "";
 
   if (key) {
@@ -126,11 +164,13 @@ export async function generateSeoContent(rawKeyword: string): Promise<GeneratedC
 
 키워드: "${keyword}"
 ${region ? `지역 맥락: ${region}` : ""}
+${related.length ? `함께 다룰 연관 키워드: ${related.join(", ")}` : ""}
 작성 관점: ${angle}
 고유 시드: ${keyword}-${hash(keyword)}-${Date.now()}
 
 작성 조건:
 - 키워드를 본문 전체에 자연스럽게 4~6회 포함
+${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 각각 1회 이상 자연스럽게 녹여서 포함` : ""}
 - 정보성/공익적 톤. 특정 업체 홍보·과장·허위·수익보장 표현 금지
 - 전화번호·주소·상호 같은 연락처 문구는 넣지 말 것
 - h2 소제목 정확히 4개, 각 섹션마다 p 문단 2개 이상. 목록이 필요하면 ul 사용
@@ -181,7 +221,7 @@ JSON만 응답:
     }
   }
 
-  return buildFallbackContent(keyword, region);
+  return buildFallbackContent(keyword, region, related);
 }
 
 function buildFallbackFaqs(keyword: string, region: string | null): SeoFaq[] {
@@ -211,13 +251,21 @@ function buildFallbackFaqs(keyword: string, region: string | null): SeoFaq[] {
   return sets[hash(keyword) % sets.length];
 }
 
-function buildFallbackContent(keyword: string, region: string | null): GeneratedContent {
+function buildFallbackContent(
+  keyword: string,
+  region: string | null,
+  related: string[] = []
+): GeneratedContent {
   const area = region || "전국";
+  const relatedLine = related.length
+    ? `<p>${keyword}를 찾는 분들은 ${related.join(", ")} 같은 주제도 함께 살펴보는 경우가 많습니다. 서로 연결된 정보를 폭넓게 확인하면 더 나은 판단에 도움이 됩니다.</p>`
+    : "";
   const content = sanitizeContentHtml(
     `
 <h2>${keyword} 기본 이해</h2>
 <p>${keyword}에 대해 처음 알아보는 분들은 정보가 흩어져 있어 혼란을 겪는 경우가 많습니다. ${SITE.name}은 ${area} 지역을 포함해 공개된 공공데이터와 검증 가능한 자료를 바탕으로, 실제 도움이 되는 내용을 정리해 안내합니다. 단편적인 광고성 정보보다 사실 관계와 배경을 먼저 이해하는 편이 안전합니다.</p>
 <p>특히 반려문화가 빠르게 확산되면서 관련 정보의 양은 늘었지만, 신뢰할 수 있는 자료를 가려내는 일이 점점 중요해지고 있습니다. 이 문서는 ${keyword}를 이해하는 데 필요한 기본 개념과 확인 포인트를 차분히 짚어 드립니다.</p>
+${relatedLine}
 
 <h2>${keyword} 확인 전 준비</h2>
 <p>${keyword}를 알아보기 전에는 목적과 상황을 먼저 정리하는 것이 좋습니다. 어떤 정보가 필요한지, 지역 여건은 어떤지, 우선순위는 무엇인지 정리하면 불필요한 시행착오를 줄일 수 있습니다.</p>

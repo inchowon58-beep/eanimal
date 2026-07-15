@@ -2,9 +2,9 @@ import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
 import type { SeoJob, SeoPage } from "@/lib/seo-pages/types";
 
 const PAGE_COLS =
-  "id, slug, keyword, region_name, title, description, content, faqs, image_url, hidden, copied_at, created_at, updated_at";
+  "id, slug, keyword, category, region_name, region_sigungu, title, description, content, faqs, keywords, image_url, hidden, copied_at, created_at, updated_at";
 const JOB_COLS =
-  "id, keyword, normalized_keyword, status, error, page_id, slug, requested_at, started_at, completed_at";
+  "id, keyword, normalized_keyword, category, status, error, page_id, slug, requested_at, started_at, completed_at";
 
 /* ---------- pages ---------- */
 
@@ -155,20 +155,28 @@ export async function listSeoPageSlugs(from: number, to: number) {
 
 /* ---------- jobs ---------- */
 
-export async function listSeoJobs(limit = 500): Promise<SeoJob[]> {
+export async function listSeoJobs(
+  limit = 500,
+  category?: string | null
+): Promise<SeoJob[]> {
   const supabase = getSupabaseService() || getSupabaseServer();
   if (!supabase) return [];
-  const { data, error } = await supabase
+  let query = supabase
     .from("seo_jobs")
     .select(JOB_COLS)
     .order("requested_at", { ascending: false })
     .limit(limit);
+  if (category !== undefined) {
+    query = category === null ? query.is("category", null) : query.eq("category", category);
+  }
+  const { data, error } = await query;
   if (error || !data) return [];
   return data as SeoJob[];
 }
 
 export async function enqueueJobs(
-  items: { keyword: string; normalized: string }[]
+  items: { keyword: string; normalized: string }[],
+  category?: string | null
 ): Promise<{ added: number; skipped: number }> {
   const supabase = getSupabaseService();
   if (!supabase) return { added: 0, skipped: items.length };
@@ -179,6 +187,7 @@ export async function enqueueJobs(
     const { error } = await supabase.from("seo_jobs").insert({
       keyword: item.keyword,
       normalized_keyword: item.normalized,
+      category: category ?? null,
       status: "pending",
     });
     if (error) skipped += 1;
@@ -187,14 +196,19 @@ export async function enqueueJobs(
   return { added, skipped };
 }
 
-/** 대기(pending) 잡만 교체: 기존 pending 삭제 후 새로 등록 */
+/** 대기(pending) 잡 교체: 해당 카테고리의 기존 pending 삭제 후 새로 등록 */
 export async function replacePendingJobs(
-  items: { keyword: string; normalized: string }[]
+  items: { keyword: string; normalized: string }[],
+  category?: string | null
 ): Promise<{ added: number; skipped: number }> {
   const supabase = getSupabaseService();
   if (!supabase) return { added: 0, skipped: items.length };
-  await supabase.from("seo_jobs").delete().eq("status", "pending");
-  return enqueueJobs(items);
+  let del = supabase.from("seo_jobs").delete().eq("status", "pending");
+  if (category !== undefined) {
+    del = category === null ? del.is("category", null) : del.eq("category", category);
+  }
+  await del;
+  return enqueueJobs(items, category);
 }
 
 export async function claimNextPendingJob(): Promise<SeoJob | null> {

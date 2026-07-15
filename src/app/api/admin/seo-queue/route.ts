@@ -3,12 +3,19 @@ import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { parseKeywords } from "@/lib/seo-pages/service";
 import { enqueueJobs, listSeoJobs, replacePendingJobs } from "@/lib/seo-pages/store";
 import { normalizeKeyword } from "@/lib/seo-pages/generate";
+import { isValidCategory } from "@/lib/seo-pages/categories";
 import type { SeoJob } from "@/lib/seo-pages/types";
 
 export const dynamic = "force-dynamic";
 
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "인증이 필요합니다." }, { status: 401 });
+}
+
+/** 요청에서 category 파라미터 정규화 (유효하지 않으면 undefined = 전체) */
+function readCategory(value: string | null | undefined): string | null | undefined {
+  if (value === null || value === undefined || value === "") return undefined;
+  return isValidCategory(value) ? value : undefined;
 }
 
 function toItems(text: string) {
@@ -29,7 +36,8 @@ function summarize(jobs: SeoJob[]) {
 export async function GET(req: Request) {
   if (!(await isAdminLoggedIn())) return unauthorized();
 
-  const jobs = await listSeoJobs();
+  const category = readCategory(new URL(req.url).searchParams.get("category"));
+  const jobs = await listSeoJobs(500, category);
   const pending = jobs.filter((j) => j.status === "pending");
 
   if (new URL(req.url).searchParams.get("download") === "txt") {
@@ -52,12 +60,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   if (!(await isAdminLoggedIn())) return unauthorized();
-  const body = (await req.json().catch(() => null)) as { text?: string } | null;
+  const body = (await req.json().catch(() => null)) as {
+    text?: string;
+    category?: string | null;
+  } | null;
+  const category = readCategory(body?.category) ?? null;
   const items = toItems(body?.text || "");
   if (items.length === 0) {
     return NextResponse.json({ ok: false, error: "등록할 키워드가 없습니다." }, { status: 400 });
   }
-  const { added, skipped } = await enqueueJobs(items);
+  const { added, skipped } = await enqueueJobs(items, category);
   return NextResponse.json({
     ok: true,
     added,
@@ -68,9 +80,13 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   if (!(await isAdminLoggedIn())) return unauthorized();
-  const body = (await req.json().catch(() => null)) as { text?: string } | null;
+  const body = (await req.json().catch(() => null)) as {
+    text?: string;
+    category?: string | null;
+  } | null;
+  const category = readCategory(body?.category) ?? null;
   const items = toItems(body?.text || "");
-  const { added, skipped } = await replacePendingJobs(items);
+  const { added, skipped } = await replacePendingJobs(items, category);
   return NextResponse.json({
     ok: true,
     added,
