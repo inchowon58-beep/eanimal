@@ -39,6 +39,10 @@
     {
       "path": "/api/cron/sync-travel?maxPages=20&enrich=1&startPage=1",
       "schedule": "40 7 * * 1"
+    },
+    {
+      "path": "/api/cron/indexnow?types=rescues,travel&limit=2000",
+      "schedule": "0 8 * * 1"
     }
   ]
 }
