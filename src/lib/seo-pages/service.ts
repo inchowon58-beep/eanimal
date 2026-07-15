@@ -2,6 +2,7 @@ import { buildSlug, generateSeoContent, normalizeKeyword } from "@/lib/seo-pages
 import { consumeQuota, getQuotaStatus } from "@/lib/seo-pages/settings";
 import {
   claimNextPendingJob,
+  countPendingJobs,
   finishJob,
   insertSeoPage,
   keywordExists,
@@ -104,6 +105,22 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
     /* not in request context */
   }
 
+  // 생성 즉시 네이버에 색인 통보(IndexNow) — "웹문서 등록요청"을 서버가 자동 처리
+  const notifyIndexNow = async () => {
+    try {
+      const { submitToIndexNow } = await import("@/lib/seo/indexnow");
+      await submitToIndexNow([`/guide/${slug}`]);
+    } catch {
+      /* 통보 실패는 무시 (주간 크론이 재통보) */
+    }
+  };
+  try {
+    const { after } = await import("next/server");
+    after(notifyIndexNow);
+  } catch {
+    void notifyIndexNow();
+  }
+
   return {
     id,
     slug,
@@ -122,9 +139,12 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
 
 export interface ProcessResult {
   ok: boolean;
-  status: "generated" | "empty" | "quota" | "service" | "error";
+  /** 폼스키 VM 규격과 동일한 상태 문자열 */
+  status: "created" | "empty" | "quota" | "service" | "failed";
+  message: string;
   keyword?: string;
   slug?: string;
+  remaining?: number;
   error?: string;
   retryAfterSec?: number;
 }
@@ -138,31 +158,52 @@ function secondsUntilKstMidnight(): number {
   return Math.max(60, Math.ceil((next.getTime() - kstNow.getTime()) / 1000));
 }
 
-/** VM 워커: 대기열에서 1개 꺼내 생성 */
+/** VM 워커: 대기열에서 1개 꺼내 생성 (응답은 폼스키 VM 규격과 호환) */
 export async function processNextGenerationJob(): Promise<ProcessResult> {
   const quota = await getQuotaStatus();
   if (!quota.service.active) {
-    return { ok: false, status: "service", error: "사용 기간이 만료되었습니다." };
+    return {
+      ok: false,
+      status: "service",
+      message: "사용 기간이 만료되었습니다. 마스터 설정에서 사용가능일을 연장하세요.",
+      retryAfterSec: secondsUntilKstMidnight(),
+    };
   }
   if (quota.remaining <= 0) {
     return {
       ok: false,
       status: "quota",
-      error: "오늘 발행 한도를 모두 사용했습니다.",
+      message: `오늘 발행 한도(${quota.limit}개)를 모두 사용했습니다.`,
       retryAfterSec: secondsUntilKstMidnight(),
     };
   }
 
   const job = await claimNextPendingJob();
-  if (!job) return { ok: true, status: "empty" };
+  if (!job) {
+    return {
+      ok: true,
+      status: "empty",
+      message: "대기 중인 키워드가 없습니다.",
+      remaining: 0,
+      retryAfterSec: 600,
+    };
+  }
 
   try {
     const page = await createSeoPageFromKeyword(job.keyword);
     await finishJob(job.id, { status: "completed", pageId: page.id, slug: page.slug });
-    return { ok: true, status: "generated", keyword: job.keyword, slug: page.slug };
+    const remaining = await countPendingJobs();
+    return {
+      ok: true,
+      status: "created",
+      message: `SEO 페이지 생성 완료: ${job.keyword}`,
+      keyword: job.keyword,
+      slug: page.slug,
+      remaining,
+    };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "생성 실패";
-    // 쿼터/기간 사유면 잡을 다시 대기로 되돌리지 않고 실패 처리하지 않음 → 재시도 가능하게 pending 복귀
+    // 쿼터/기간 사유면 실패로 소진하지 않고 다시 대기(pending)로 되돌린다.
     if (e instanceof SeoCreateError && (e.code === "QUOTA" || e.code === "SERVICE")) {
       const { getSupabaseService } = await import("@/lib/supabase/server");
       const supabase = getSupabaseService();
@@ -175,11 +216,18 @@ export async function processNextGenerationJob(): Promise<ProcessResult> {
       return {
         ok: false,
         status: e.code === "QUOTA" ? "quota" : "service",
-        error: msg,
-        retryAfterSec: e.code === "QUOTA" ? secondsUntilKstMidnight() : undefined,
+        message: msg,
+        retryAfterSec: secondsUntilKstMidnight(),
       };
     }
     await finishJob(job.id, { status: "failed", error: msg });
-    return { ok: false, status: "error", keyword: job.keyword, error: msg };
+    return {
+      ok: false,
+      status: "failed",
+      message: msg,
+      keyword: job.keyword,
+      error: msg,
+      remaining: await countPendingJobs(),
+    };
   }
 }
