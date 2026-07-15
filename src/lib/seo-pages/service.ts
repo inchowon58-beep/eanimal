@@ -105,6 +105,14 @@ export async function createSeoPageFromKeyword(rawKeyword: string): Promise<SeoP
     /* not in request context */
   }
 
+  // 수집(순위반영) 대기열 등록 — VM 수집 워커가 네이버 서치어드바이저에 등록
+  try {
+    const { enqueueCollectionJob } = await import("@/lib/collection/store");
+    await enqueueCollectionJob({ pageUrl: `/guide/${slug}`, keyword, slug });
+  } catch {
+    /* 대기열 등록 실패는 무시 (IndexNow가 백업) */
+  }
+
   // 생성 즉시 네이버에 색인 통보(IndexNow) — "웹문서 등록요청"을 서버가 자동 처리
   const notifyIndexNow = async () => {
     try {
