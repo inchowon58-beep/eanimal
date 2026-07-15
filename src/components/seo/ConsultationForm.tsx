@@ -15,6 +15,12 @@ interface Props {
 const SUCCESS_MSG =
   "접수가 완료되었습니다. 반려문화증진위원회 배정 상담사가 영업일 기준 24시간 이내에 순차적으로 연락을 드립니다.";
 
+const NOTICE_LINES = [
+  "실소유자가 아닌 외부 유기견·유기묘 접수는 지자체를 통해 접수하셔야 합니다.",
+  "해당 파양·안심보호 신청은 개인 사정으로 더 이상 보호가 어려운 경우에 한해 접수되며, 1곳 이상의 선별된 업체에서 상담이 이루어질 수 있습니다.",
+  "유기견·유기묘 또는 개인 상황에 의한 파양 및 무료입양 외에는 상담사 연결 접수가 처리되지 않을 수 있습니다.",
+];
+
 const PRIVACY_SUMMARY =
   "수집항목: 이름, 연락처, 주소, 문의내용, 접속정보(IP·유입경로) | 이용목적: 상담 신청 확인 및 안내 | 보유기간: 상담 완료 후 최대 3개월 보관 후 파기 | 동의거부: 거부 시 상담 신청이 제한될 수 있습니다.";
 
@@ -87,6 +93,7 @@ export default function ConsultationForm({
   const inputCls =
     "mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent";
   const labelCls = "text-xs font-semibold text-foreground";
+  const showNotice = category === "shelter";
 
   return (
     <section id="consult-form" className="mt-5 scroll-mt-24">
@@ -113,13 +120,37 @@ export default function ConsultationForm({
               </div>
               <h3 className="mt-4 text-lg font-bold text-foreground">접수 완료</h3>
               <p className="mt-2 text-sm leading-relaxed text-muted-fg">{SUCCESS_MSG}</p>
+              {showNotice && (
+                <ul className="mx-auto mt-4 max-w-md space-y-1.5 rounded-xl bg-muted/30 p-4 text-left text-xs leading-relaxed text-muted-fg">
+                  {NOTICE_LINES.map((line, i) => (
+                    <li key={i} className="flex gap-1.5">
+                      <span className="text-accent">·</span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ) : (
             <>
               {intro && (
-                <p className="mb-5 rounded-xl bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
+                <p className="mb-4 rounded-xl bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
                   {intro}
                 </p>
+              )}
+
+              {showNotice && (
+                <div className="mb-5 rounded-xl border border-amber-300/60 bg-amber-50 p-4">
+                  <p className="text-xs font-bold text-amber-800">접수 전 꼭 확인해 주세요</p>
+                  <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-amber-800/90">
+                    {NOTICE_LINES.map((line, i) => (
+                      <li key={i} className="flex gap-1.5">
+                        <span>·</span>
+                        <span>{line}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

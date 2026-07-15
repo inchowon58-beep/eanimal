@@ -97,6 +97,7 @@ export default function SeoPageManager() {
   const [formIntro, setFormIntro] = useState("");
   const [formFields, setFormFields] = useState<ConsultField[]>([]);
   const [formSaving, setFormSaving] = useState(false);
+  const [configOpen, setConfigOpen] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
@@ -506,8 +507,26 @@ export default function SeoPageManager() {
           ))}
         </div>
 
+        {/* 카테고리 설정 토글 */}
+        <button
+          type="button"
+          onClick={() => setConfigOpen((o) => !o)}
+          className="mt-3 flex w-full items-center justify-between rounded-xl border border-border bg-muted/30 px-4 py-3 text-left transition hover:bg-muted/50"
+        >
+          <span className="text-sm font-semibold text-foreground">
+            카테고리 설정{" "}
+            <span className="text-xs font-normal text-muted-fg">
+              (연관 키워드 · 이미지 폴더 · 상담 신청서 양식)
+            </span>
+          </span>
+          <span className={`text-muted-fg transition-transform ${configOpen ? "rotate-180" : ""}`}>
+            ▼
+          </span>
+        </button>
+
         {/* 연관 키워드 풀 */}
-        <div className="mt-4 rounded-xl border border-border bg-muted/20 p-4">
+        {configOpen && (
+        <div className="mt-3 rounded-xl border border-border bg-muted/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-foreground">
               연관 키워드{" "}
@@ -702,6 +721,7 @@ export default function SeoPageManager() {
             )}
           </div>
         </div>
+        )}
 
         <div className="mt-4 flex flex-wrap gap-2">
           {(
