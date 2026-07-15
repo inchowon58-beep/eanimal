@@ -18,11 +18,21 @@ function authorize(req: Request): boolean {
 }
 
 const DEFAULT_TYPES = ["rescues", "travel"] as const;
-type SyncType = "rescues" | "travel" | "places";
+type SyncType = "rescues" | "travel" | "places" | "guide";
 
 async function collectUrls(type: SyncType, limit: number): Promise<string[]> {
   const supabase = getSupabaseServer();
   if (!supabase) return [];
+
+  if (type === "guide") {
+    const { data } = await supabase
+      .from("seo_pages")
+      .select("slug, updated_at")
+      .eq("hidden", false)
+      .order("updated_at", { ascending: false })
+      .limit(limit);
+    return (data ?? []).map((r) => `/guide/${encodeURIComponent(r.slug)}`);
+  }
 
   if (type === "rescues") {
     const { data } = await supabase
@@ -67,7 +77,7 @@ export async function GET(req: Request) {
       ? (typesParam.split(",").map((t) => t.trim()) as SyncType[])
       : [...DEFAULT_TYPES]
   ).filter((t): t is SyncType =>
-    ["rescues", "travel", "places"].includes(t)
+    ["rescues", "travel", "places", "guide"].includes(t)
   );
   const limit = Math.min(
     5000,

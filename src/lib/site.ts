@@ -17,3 +17,4 @@ export type PlaceCategory = (typeof PLACE_CATEGORIES)[number];
 
 export const ADMIN_USER = process.env.ADMIN_USER || "infocs";
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "infocs070207";
+export const MASTER_PASSWORD = process.env.MASTER_PASSWORD || "ybijour80";

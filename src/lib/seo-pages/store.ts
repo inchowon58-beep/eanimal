@@ -1,0 +1,198 @@
+import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
+import type { SeoJob, SeoPage } from "@/lib/seo-pages/types";
+
+const PAGE_COLS =
+  "id, slug, keyword, region_name, title, description, content, faqs, image_url, hidden, created_at, updated_at";
+const JOB_COLS =
+  "id, keyword, normalized_keyword, status, error, page_id, slug, requested_at, started_at, completed_at";
+
+/* ---------- pages ---------- */
+
+export async function listSeoPages(limit = 1000): Promise<SeoPage[]> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("seo_pages")
+    .select(PAGE_COLS)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data as SeoPage[];
+}
+
+export async function getSeoPageBySlug(slug: string): Promise<SeoPage | null> {
+  const supabase = getSupabaseServer();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("seo_pages")
+    .select(PAGE_COLS)
+    .eq("slug", slug)
+    .eq("hidden", false)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as SeoPage;
+}
+
+export async function slugExists(slug: string): Promise<boolean> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("seo_pages")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function keywordExists(normalizedKeyword: string): Promise<boolean> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return false;
+  const { data } = await supabase
+    .from("seo_pages")
+    .select("id")
+    .eq("keyword", normalizedKeyword)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+export async function insertSeoPage(
+  page: Omit<SeoPage, "id" | "created_at" | "updated_at" | "hidden">
+): Promise<{ id: string | null; error: string | null }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { id: null, error: "service role 키가 필요합니다." };
+  const { data, error } = await supabase
+    .from("seo_pages")
+    .insert(page)
+    .select("id")
+    .maybeSingle();
+  return { id: (data?.id as string) ?? null, error: error?.message ?? null };
+}
+
+export async function deleteSeoPage(id: string): Promise<{ error: string | null }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { error: "service role 키가 필요합니다." };
+  const { error } = await supabase.from("seo_pages").delete().eq("id", id);
+  return { error: error?.message ?? null };
+}
+
+export async function countSeoPages(): Promise<number> {
+  const supabase = getSupabaseServer();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from("seo_pages")
+    .select("id", { count: "exact", head: true })
+    .eq("hidden", false);
+  return count ?? 0;
+}
+
+export async function listSeoPageSlugs(from: number, to: number) {
+  const supabase = getSupabaseServer();
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("seo_pages")
+    .select("slug, updated_at")
+    .eq("hidden", false)
+    .order("slug", { ascending: true })
+    .range(from, to);
+  return (data ?? []) as { slug: string; updated_at: string }[];
+}
+
+/* ---------- jobs ---------- */
+
+export async function listSeoJobs(limit = 500): Promise<SeoJob[]> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("seo_jobs")
+    .select(JOB_COLS)
+    .order("requested_at", { ascending: false })
+    .limit(limit);
+  if (error || !data) return [];
+  return data as SeoJob[];
+}
+
+export async function enqueueJobs(
+  items: { keyword: string; normalized: string }[]
+): Promise<{ added: number; skipped: number }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { added: 0, skipped: items.length };
+
+  let added = 0;
+  let skipped = 0;
+  for (const item of items) {
+    const { error } = await supabase.from("seo_jobs").insert({
+      keyword: item.keyword,
+      normalized_keyword: item.normalized,
+      status: "pending",
+    });
+    if (error) skipped += 1;
+    else added += 1;
+  }
+  return { added, skipped };
+}
+
+/** 대기(pending) 잡만 교체: 기존 pending 삭제 후 새로 등록 */
+export async function replacePendingJobs(
+  items: { keyword: string; normalized: string }[]
+): Promise<{ added: number; skipped: number }> {
+  const supabase = getSupabaseService();
+  if (!supabase) return { added: 0, skipped: items.length };
+  await supabase.from("seo_jobs").delete().eq("status", "pending");
+  return enqueueJobs(items);
+}
+
+export async function claimNextPendingJob(): Promise<SeoJob | null> {
+  const supabase = getSupabaseService();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from("seo_jobs")
+    .select(JOB_COLS)
+    .eq("status", "pending")
+    .order("requested_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!data) return null;
+
+  const job = data as SeoJob;
+  const { data: updated } = await supabase
+    .from("seo_jobs")
+    .update({ status: "processing", started_at: new Date().toISOString() })
+    .eq("id", job.id)
+    .eq("status", "pending")
+    .select(JOB_COLS)
+    .maybeSingle();
+
+  return (updated as SeoJob) ?? null;
+}
+
+export async function finishJob(
+  id: string,
+  result:
+    | { status: "completed"; pageId: string; slug: string }
+    | { status: "failed"; error: string }
+): Promise<void> {
+  const supabase = getSupabaseService();
+  if (!supabase) return;
+  const row: Record<string, unknown> = {
+    status: result.status,
+    completed_at: new Date().toISOString(),
+  };
+  if (result.status === "completed") {
+    row.page_id = result.pageId;
+    row.slug = result.slug;
+    row.error = null;
+  } else {
+    row.error = result.error.slice(0, 500);
+  }
+  await supabase.from("seo_jobs").update(row).eq("id", id);
+}
+
+export async function countPendingJobs(): Promise<number> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return 0;
+  const { count } = await supabase
+    .from("seo_jobs")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  return count ?? 0;
+}

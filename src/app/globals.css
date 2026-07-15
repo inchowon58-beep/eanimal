@@ -65,3 +65,35 @@ body {
   color: var(--muted-fg);
   font-size: 0.975rem;
 }
+
+.seo-body h2 {
+  margin-top: 1.9rem;
+  margin-bottom: 0.8rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+
+.seo-body h2:first-child {
+  margin-top: 0;
+}
+
+.seo-body h3 {
+  margin-top: 1.3rem;
+  margin-bottom: 0.6rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.seo-body ul {
+  margin: 0 0 1.1rem 1.1rem;
+  list-style: disc;
+  color: var(--muted-fg);
+  font-size: 0.975rem;
+  line-height: 1.8;
+}
+
+.seo-body li {
+  margin-bottom: 0.35rem;
+}

@@ -4,6 +4,7 @@ import AdminLogoutButton from "@/app/admin/AdminLogoutButton";
 const TABS = [
   { id: "requests", label: "정보삭제요청", href: "/admin" },
   { id: "banners", label: "배너 설정", href: "/admin/banners" },
+  { id: "seo", label: "SEO 페이지", href: "/admin/seo" },
 ] as const;
 
 export type AdminTab = (typeof TABS)[number]["id"];
@@ -12,7 +13,7 @@ export default function AdminHeader({
   active,
   subtitle,
 }: {
-  active: AdminTab;
+  active: AdminTab | null;
   subtitle: string;
 }) {
   return (
@@ -24,6 +25,12 @@ export default function AdminHeader({
         </div>
         <div className="flex gap-2">
           <Link
+            href="/admin/master"
+            className="rounded-lg border border-accent/40 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent hover:bg-accent/15"
+          >
+            마스터설정
+          </Link>
+          <Link
             href="/"
             className="rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium"
           >
@@ -33,17 +40,17 @@ export default function AdminHeader({
         </div>
       </div>
 
-      <nav className="mt-5 flex gap-1 border-b border-border">
+      <nav className="mt-6 flex gap-1.5 border-b border-border">
         {TABS.map((tab) => {
           const isActive = tab.id === active;
           return (
             <Link
               key={tab.id}
               href={tab.href}
-              className={`-mb-px border-b-2 px-4 py-2.5 text-sm font-medium transition ${
+              className={`-mb-px rounded-t-lg px-4 py-2.5 text-sm font-semibold transition ${
                 isActive
-                  ? "border-accent text-accent"
-                  : "border-transparent text-muted-fg hover:text-foreground"
+                  ? "border border-b-0 border-accent bg-accent text-white"
+                  : "border border-border bg-muted/40 text-muted-fg hover:bg-muted hover:text-foreground"
               }`}
             >
               {tab.label}
