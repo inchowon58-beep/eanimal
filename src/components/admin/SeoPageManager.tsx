@@ -312,7 +312,7 @@ export default function SeoPageManager() {
         setMessage(
           d.count > 0
             ? `이미지 ${d.count}장을 찾았습니다.`
-            : "이미지를 찾지 못했습니다. 버킷/폴더명·공개설정을 확인하세요."
+            : "이미지를 찾지 못했습니다. 폴더 URL을 다시 확인하세요."
         );
       } else {
         setMessage(d.error || "이미지 확인 실패");
@@ -490,20 +490,13 @@ export default function SeoPageManager() {
               </button>
             </div>
             <p className="mt-2 text-xs text-muted-fg">
-              <strong className="text-foreground">외부 사이트의 이미지 폴더 URL</strong>을 입력하세요 (예:{" "}
-              <strong className="text-foreground">https://image.cattery.co.kr/dogboho</strong>). 그 폴더의 디렉터리
-              목록(자동 인덱스)이나 <code>index.json</code>·<code>list.txt</code> 를 읽어 이미지를 가져옵니다.
-              <br />
-              입력 후 <strong className="text-foreground">이미지 확인</strong>으로 몇 장 잡히는지 먼저 확인하세요. 생성 시
-              그 폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을 뽑아 한 줄 1·2·3장, 큰 사진+작은 사진,
-              좌/우 이미지+글 등 무작위 배치로 본문에 넣습니다. 비워두면 이미지 없이 글만 생성됩니다.
-              <br />
-              (Supabase <strong className="text-foreground">seo-images</strong> 버킷 폴더명 방식도 계속 지원합니다.)
+              폴더 URL을 입력하세요 (예:{" "}
+              <strong className="text-foreground">https://image.cattery.co.kr/dogboho</strong>)
             </p>
             {imgPreview && (
               <div className="mt-3 rounded-xl border border-border bg-background p-3">
                 <p className="text-xs font-medium text-foreground">
-                  감지된 이미지:{" "}
+                  감지된 이미지{" "}
                   <span className={imgPreview.count > 0 ? "text-accent" : "text-danger"}>
                     {imgPreview.count}장
                   </span>
@@ -523,7 +516,7 @@ export default function SeoPageManager() {
                 )}
                 {imgPreview.count === 0 && (
                   <p className="mt-1 text-xs text-danger">
-                    버킷명(seo-images)·폴더명·공개(public) 설정, 그리고 마이그레이션 실행 여부를 확인하세요.
+                    이미지를 찾지 못했습니다. 폴더 URL을 다시 확인하세요.
                   </p>
                 )}
               </div>

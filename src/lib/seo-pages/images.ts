@@ -105,11 +105,61 @@ function parseHtmlImages(html: string, base: string): string[] {
 }
 
 /**
+ * 사이트 루트의 /data/folders-index.json 매니페스트 방식.
+ * (예: image.cattery.co.kr — 각 폴더가 01.webp, 02.webp ... 로 저장됨)
+ * 매니페스트에서 folder/count/format/sample 을 읽어 zero-padding 파일명으로 URL을 구성한다.
+ */
+async function listManifestFolderImages(folderUrl: string): Promise<string[]> {
+  let u: URL;
+  try {
+    u = new URL(folderUrl);
+  } catch {
+    return [];
+  }
+  const origin = u.origin;
+  const folderName = u.pathname.replace(/^\/+|\/+$/g, "").split("/").pop() || "";
+  if (!folderName) return [];
+
+  const text = await fetchText(`${origin}/data/folders-index.json`);
+  if (!text) return [];
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return [];
+  }
+  const folders = (data as { folders?: unknown })?.folders;
+  if (!Array.isArray(folders)) return [];
+  const entry = folders.find(
+    (f) => f && typeof f === "object" && (f as { folder?: string }).folder === folderName,
+  ) as { count?: number; format?: string; sample?: string } | undefined;
+  if (!entry) return [];
+
+  const count = Number(entry.count) || 0;
+  if (count <= 0) return [];
+  const format = typeof entry.format === "string" && entry.format ? entry.format : "webp";
+  // sample(예: /dogboho/01.webp)에서 zero-padding 자릿수 추출
+  let pad = 2;
+  const m = typeof entry.sample === "string" ? entry.sample.match(/(\d+)\.[a-z0-9]+$/i) : null;
+  if (m) pad = m[1].length;
+
+  const urls: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    urls.push(`${origin}/${folderName}/${String(i).padStart(pad, "0")}.${format}`);
+  }
+  return urls;
+}
+
+/**
  * 외부 사이트 폴더 URL에서 이미지 목록을 읽는다.
- * 우선순위: index.json(문자열 배열) → list.txt(줄바꿈) → 디렉터리 자동 인덱스 HTML 파싱
+ * 우선순위: /data/folders-index.json 매니페스트 → index.json → list.txt → 디렉터리 자동 인덱스 HTML
  * 예) https://image.cattery.co.kr/dogboho
  */
 export async function listExternalFolderImages(folderUrl: string): Promise<string[]> {
+  // 0) 사이트 루트 매니페스트(image.cattery.co.kr 형태)
+  const manifestUrls = await listManifestFolderImages(folderUrl);
+  if (manifestUrls.length) return manifestUrls;
+
   const base = folderUrl.endsWith("/") ? folderUrl : `${folderUrl}/`;
 
   // 1) index.json 매니페스트
