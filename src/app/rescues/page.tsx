@@ -64,7 +64,7 @@ export default async function RescuesPage({ searchParams }: Props) {
         </div>
       </form>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {result.items.map((item) => (
           <Link
             key={item.desertion_no}
@@ -74,13 +74,13 @@ export default async function RescuesPage({ searchParams }: Props) {
             <div className="relative aspect-[4/3] bg-muted">
               <RemoteImage src={item.image_url} alt={item.kind_cd || "구조동물"} />
             </div>
-            <div className="p-4">
-              <p className="text-xs text-muted-fg">{formatHappenDt(item.happen_dt)}</p>
-              <h2 className="mt-1 font-semibold text-foreground">{item.kind_cd || "품종 미상"}</h2>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-fg">
+            <div className="p-3 sm:p-4">
+              <p className="text-[11px] text-muted-fg sm:text-xs">{formatHappenDt(item.happen_dt)}</p>
+              <h2 className="mt-0.5 line-clamp-1 text-sm font-semibold text-foreground sm:mt-1 sm:text-base">{item.kind_cd || "품종 미상"}</h2>
+              <p className="mt-1 line-clamp-2 text-xs text-muted-fg sm:text-sm">
                 {item.happen_place || "구조 장소 미상"} · {sexLabel(item.sex_cd)}
               </p>
-              <p className="mt-2 text-xs text-muted-fg">{item.care_nm || "보호소 미상"}</p>
+              <p className="mt-2 line-clamp-1 text-[11px] text-muted-fg sm:text-xs">{item.care_nm || "보호소 미상"}</p>
             </div>
           </Link>
         ))}

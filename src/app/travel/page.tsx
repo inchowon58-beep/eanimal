@@ -63,7 +63,7 @@ export default async function TravelPage({ searchParams }: Props) {
         </div>
       </form>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         {result.items.map((item) => (
           <Link
             key={item.content_id}
@@ -73,13 +73,13 @@ export default async function TravelPage({ searchParams }: Props) {
             <div className="relative aspect-[4/3] bg-muted">
               <RemoteImage src={item.image_url} alt={item.title} />
             </div>
-            <div className="p-4">
-              <h2 className="font-semibold text-foreground group-hover:text-accent">{item.title}</h2>
-              <p className="mt-1 line-clamp-2 text-sm text-muted-fg">
+            <div className="p-3 sm:p-4">
+              <h2 className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-accent sm:text-base">{item.title}</h2>
+              <p className="mt-1 line-clamp-2 text-xs text-muted-fg sm:text-sm">
                 {[item.sido, item.address].filter(Boolean).join(" · ") || "주소 미상"}
               </p>
               {item.pet_info && (
-                <p className="mt-2 line-clamp-2 text-xs text-muted-fg">{item.pet_info}</p>
+                <p className="mt-2 line-clamp-2 text-[11px] text-muted-fg sm:text-xs">{item.pet_info}</p>
               )}
             </div>
           </Link>
