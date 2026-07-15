@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { SEO_CATEGORIES, isValidCategory } from "@/lib/seo-pages/categories";
 import { listFolderImages } from "@/lib/seo-pages/images";
+import { defaultCategoryForm, type CategoryForm } from "@/lib/consultation/forms";
 import {
+  getCategoryForms,
   getCategoryImages,
   getCategoryPools,
   saveCategoryConfig,
@@ -24,13 +26,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, count: urls.length, sample: urls.slice(0, 8) });
   }
 
-  const [pools, images] = await Promise.all([getCategoryPools(), getCategoryImages()]);
+  const [pools, images, forms] = await Promise.all([
+    getCategoryPools(),
+    getCategoryImages(),
+    getCategoryForms(),
+  ]);
   const categories = SEO_CATEGORIES.map((c) => ({
     id: c.id,
     label: c.label,
     topic: c.topic,
     pool: pools[c.id] ?? c.defaultPool,
     imageFolder: images[c.id] ?? "",
+    form: forms[c.id] ?? defaultCategoryForm(c.id),
+    formCustomized: forms[c.id] !== undefined,
     isDefault: pools[c.id] === undefined,
   }));
   return NextResponse.json({ ok: true, categories });
@@ -43,6 +51,7 @@ export async function PUT(req: Request) {
     id?: string;
     pool?: string;
     imageFolder?: string;
+    form?: CategoryForm;
   } | null;
   const id = body?.id;
   if (!id || !isValidCategory(id)) {
@@ -51,6 +60,7 @@ export async function PUT(req: Request) {
   const { error } = await saveCategoryConfig(id, {
     pool: body?.pool,
     imageFolder: body?.imageFolder,
+    form: body?.form,
   });
   if (error) return NextResponse.json({ ok: false, error }, { status: 500 });
   return NextResponse.json({ ok: true, message: "카테고리 설정을 저장했습니다." });

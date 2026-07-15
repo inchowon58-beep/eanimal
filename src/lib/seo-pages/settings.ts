@@ -1,4 +1,5 @@
 import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
+import { sanitizeForm, type CategoryForm } from "@/lib/consultation/forms";
 import {
   kstDate,
   type QuotaStatus,
@@ -92,10 +93,29 @@ export async function getCategoryImages(): Promise<Record<string, string>> {
   return out;
 }
 
-/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 저장 (제공된 항목만) */
+/** 카테고리별 상담 신청서 양식 조회 ({ [categoryId]: CategoryForm }) */
+export async function getCategoryForms(): Promise<Record<string, CategoryForm>> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return {};
+  const { data, error } = await supabase
+    .from("seo_settings")
+    .select("category_forms")
+    .eq("id", "default")
+    .maybeSingle();
+  if (error || !data?.category_forms) return {};
+  const raw = data.category_forms as Record<string, unknown>;
+  const out: Record<string, CategoryForm> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const form = sanitizeForm(v);
+    if (form) out[k] = form;
+  }
+  return out;
+}
+
+/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 + 신청서 양식 저장 (제공된 항목만) */
 export async function saveCategoryConfig(
   categoryId: string,
-  input: { pool?: string; imageFolder?: string }
+  input: { pool?: string; imageFolder?: string; form?: CategoryForm }
 ): Promise<{ error: string | null }> {
   const supabase = getSupabaseService();
   if (!supabase) return { error: "service role 키가 필요합니다." };
@@ -113,6 +133,12 @@ export async function saveCategoryConfig(
     const imgs = await getCategoryImages();
     imgs[categoryId] = input.imageFolder;
     row.category_images = imgs;
+  }
+  if (input.form !== undefined) {
+    const forms = await getCategoryForms();
+    const clean = sanitizeForm(input.form);
+    if (clean) forms[categoryId] = clean;
+    row.category_forms = forms;
   }
 
   const { error } = await supabase

@@ -3,38 +3,53 @@ import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
-    guardianName?: string;
+    category?: string;
+    name?: string;
     phone?: string;
-    sido?: string;
-    sigungu?: string;
-    petType?: string;
-    petAge?: string;
-    petVaccination?: string;
-    reason?: string;
+    answers?: Record<string, string>;
+    agreed?: boolean;
     sourceSlug?: string;
     sourceKeyword?: string;
+    pageUrl?: string;
   } | null;
 
-  const guardianName = body?.guardianName?.trim() || "";
+  const name = body?.name?.trim() || "";
   const phone = body?.phone?.trim() || "";
-  const sido = body?.sido?.trim() || "";
-  const sigungu = body?.sigungu?.trim() || "";
-  const petType = body?.petType?.trim() || "";
-  const petAge = body?.petAge?.trim() || "";
-  const petVaccination = body?.petVaccination?.trim() || "";
-  const reason = body?.reason?.trim() || "";
-  const sourceSlug = body?.sourceSlug?.trim() || "";
-  const sourceKeyword = body?.sourceKeyword?.trim() || "";
+  const category = body?.category?.trim() || "";
+  const agreed = Boolean(body?.agreed);
 
-  if (!guardianName || !phone || !sido || !petType || !reason) {
+  if (!name || !phone) {
     return NextResponse.json(
-      { ok: false, error: "필수 항목(성함·연락처·거주지역·반려동물 종류·사유)을 입력해 주세요." },
+      { ok: false, error: "성함과 연락처를 입력해 주세요." },
       { status: 400 }
     );
   }
-  if (guardianName.length > 100 || phone.length > 40 || reason.length > 500) {
+  if (!agreed) {
+    return NextResponse.json(
+      { ok: false, error: "개인정보 수집 및 이용에 동의해 주세요." },
+      { status: 400 }
+    );
+  }
+  if (name.length > 100 || phone.length > 40) {
     return NextResponse.json({ ok: false, error: "입력 길이가 너무 깁니다." }, { status: 400 });
   }
+
+  // 동적 필드 값 정리
+  const answers: Record<string, string> = {};
+  if (body?.answers && typeof body.answers === "object") {
+    for (const [k, v] of Object.entries(body.answers)) {
+      if (typeof v === "string" && v.trim()) answers[k] = v.trim().slice(0, 2000);
+    }
+  }
+
+  // 자동 수집 항목
+  const h = req.headers;
+  const ip =
+    h.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    h.get("x-real-ip") ||
+    "";
+  const referrer = h.get("referer") || "";
+  const userAgent = h.get("user-agent") || "";
 
   const supabase = getSupabaseService() || getSupabaseServer();
   if (!supabase) {
@@ -45,16 +60,17 @@ export async function POST(req: Request) {
   }
 
   const { error } = await supabase.from("consultation_requests").insert({
-    guardian_name: guardianName,
+    category,
+    name,
     phone,
-    region_sido: sido,
-    region_sigungu: sigungu,
-    pet_type: petType,
-    pet_age: petAge,
-    pet_vaccination: petVaccination,
-    reason,
-    source_slug: sourceSlug,
-    source_keyword: sourceKeyword,
+    answers,
+    agreed,
+    source_slug: body?.sourceSlug?.trim() || "",
+    source_keyword: body?.sourceKeyword?.trim() || "",
+    page_url: body?.pageUrl?.trim() || "",
+    referrer,
+    ip,
+    user_agent: userAgent,
   });
 
   if (error) {

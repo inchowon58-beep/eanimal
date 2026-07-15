@@ -3,6 +3,7 @@ import AdminLogoutButton from "@/app/admin/AdminLogoutButton";
 
 const TABS = [
   { id: "requests", label: "정보삭제요청", href: "/admin" },
+  { id: "consultations", label: "상담신청", href: "/admin/consultations" },
   { id: "banners", label: "배너 설정", href: "/admin/banners" },
   { id: "seo", label: "SEO 페이지", href: "/admin/seo" },
 ] as const;

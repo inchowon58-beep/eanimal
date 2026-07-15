@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SEO_CATEGORIES } from "@/lib/seo-pages/categories";
+import type { ConsultField } from "@/lib/consultation/forms";
 
 interface SeoPageRow {
   id: string;
@@ -13,12 +14,19 @@ interface SeoPageRow {
   copied_at?: string | null;
 }
 
+interface CategoryForm {
+  intro: string;
+  fields: ConsultField[];
+}
+
 interface CategoryRow {
   id: string;
   label: string;
   topic: string;
   pool: string;
   imageFolder: string;
+  form: CategoryForm;
+  formCustomized: boolean;
   isDefault: boolean;
 }
 
@@ -85,6 +93,10 @@ export default function SeoPageManager() {
   const [poolSaving, setPoolSaving] = useState(false);
   const [imgPreview, setImgPreview] = useState<{ count: number; sample: string[] } | null>(null);
   const [imgChecking, setImgChecking] = useState(false);
+
+  const [formIntro, setFormIntro] = useState("");
+  const [formFields, setFormFields] = useState<ConsultField[]>([]);
+  const [formSaving, setFormSaving] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
@@ -163,6 +175,8 @@ export default function SeoPageManager() {
     if (row) {
       setPoolText(row.pool);
       setImageFolder(row.imageFolder || "");
+      setFormIntro(row.form?.intro || "");
+      setFormFields(row.form?.fields ? row.form.fields.map((f) => ({ ...f })) : []);
     }
     setImgPreview(null);
   }, [categories, category]);
@@ -321,6 +335,59 @@ export default function SeoPageManager() {
       setMessage("이미지 확인 중 오류가 발생했습니다.");
     }
     setImgChecking(false);
+  }
+
+  function addFormField() {
+    setFormFields((prev) => [
+      ...prev,
+      { id: Math.random().toString(36).slice(2, 10), label: "", required: false, multiline: false },
+    ]);
+  }
+
+  function updateFormField(id: string, patch: Partial<ConsultField>) {
+    setFormFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  }
+
+  function removeFormField(id: string) {
+    setFormFields((prev) => prev.filter((f) => f.id !== id));
+  }
+
+  function moveFormField(id: string, dir: -1 | 1) {
+    setFormFields((prev) => {
+      const idx = prev.findIndex((f) => f.id === id);
+      const to = idx + dir;
+      if (idx < 0 || to < 0 || to >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[to]] = [next[to], next[idx]];
+      return next;
+    });
+  }
+
+  async function saveForm() {
+    const cleaned = formFields
+      .map((f) => ({ ...f, label: f.label.trim() }))
+      .filter((f) => f.label);
+    const form = { intro: formIntro.trim(), fields: cleaned };
+    setFormSaving(true);
+    setMessage("신청서 양식 저장 중...");
+    try {
+      const res = await fetch("/api/admin/seo-categories", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: category, form }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setMessage(d.message || d.error || (res.ok ? "신청서 양식을 저장했습니다." : "저장 실패"));
+      if (res.ok) {
+        setFormFields(cleaned);
+        setCategories((prev) =>
+          prev.map((c) => (c.id === category ? { ...c, form, formCustomized: true } : c))
+        );
+      }
+    } catch {
+      setMessage("신청서 양식 저장 중 오류가 발생했습니다.");
+    }
+    setFormSaving(false);
   }
 
   async function deletePage(id: string) {
@@ -520,6 +587,118 @@ export default function SeoPageManager() {
                   </p>
                 )}
               </div>
+            )}
+          </div>
+
+          {/* 상담 신청서 양식 */}
+          <div className="mt-4 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-foreground">
+                상담 신청서 양식{" "}
+                <span className="text-xs font-normal text-muted-fg">
+                  (이름·연락처는 항상 포함 · 추가 항목은 고객이 직접 입력)
+                </span>
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={addFormField}
+                  className="rounded-lg border border-accent px-3 py-1.5 text-xs font-bold text-accent"
+                >
+                  + 양식 추가
+                </button>
+                <button
+                  type="button"
+                  onClick={saveForm}
+                  disabled={formSaving}
+                  className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background disabled:opacity-50"
+                >
+                  {formSaving ? "저장 중..." : "양식 저장"}
+                </button>
+              </div>
+            </div>
+
+            <label className="mt-3 block text-xs font-medium text-muted-fg">안내 문구</label>
+            <textarea
+              value={formIntro}
+              onChange={(e) => setFormIntro(e.target.value)}
+              rows={2}
+              placeholder="예: 고민 중이신가요? 편하게 상담을 요청해 보세요."
+              className="mt-1 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+            />
+
+            <div className="mt-3 flex items-center gap-2 rounded-lg bg-muted/30 px-3 py-2 text-xs text-muted-fg">
+              <span className="rounded bg-accent/12 px-2 py-0.5 font-semibold text-accent">고정</span>
+              이름 · 연락처 (모든 양식에 자동 포함, 필수)
+            </div>
+
+            {formFields.length === 0 ? (
+              <p className="mt-2 text-xs text-muted-fg">
+                추가 항목이 없습니다. <strong className="text-foreground">+ 양식 추가</strong>로 입력
+                항목을 만드세요. (아무것도 없으면 방문자에게 기본 약식 폼이 노출됩니다)
+              </p>
+            ) : (
+              <ul className="mt-2 space-y-2">
+                {formFields.map((fld, idx) => (
+                  <li
+                    key={fld.id}
+                    className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-background p-2.5"
+                  >
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        onClick={() => moveFormField(fld.id, -1)}
+                        disabled={idx === 0}
+                        className="px-1 text-xs text-muted-fg disabled:opacity-30"
+                        title="위로"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveFormField(fld.id, 1)}
+                        disabled={idx === formFields.length - 1}
+                        className="px-1 text-xs text-muted-fg disabled:opacity-30"
+                        title="아래로"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      value={fld.label}
+                      onChange={(e) => updateFormField(fld.id, { label: e.target.value })}
+                      placeholder="항목명 (예: 품종, 나이, 성격...)"
+                      className="min-w-0 flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm outline-none focus:border-accent"
+                    />
+                    <label className="flex items-center gap-1 text-xs text-muted-fg">
+                      <input
+                        type="checkbox"
+                        checked={fld.required}
+                        onChange={(e) => updateFormField(fld.id, { required: e.target.checked })}
+                        className="h-3.5 w-3.5 accent-[var(--accent)]"
+                      />
+                      필수
+                    </label>
+                    <label className="flex items-center gap-1 text-xs text-muted-fg">
+                      <input
+                        type="checkbox"
+                        checked={fld.multiline}
+                        onChange={(e) => updateFormField(fld.id, { multiline: e.target.checked })}
+                        className="h-3.5 w-3.5 accent-[var(--accent)]"
+                      />
+                      여러줄
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeFormField(fld.id)}
+                      className="rounded-lg border border-danger/40 px-2.5 py-1 text-xs text-danger"
+                    >
+                      삭제
+                    </button>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>
