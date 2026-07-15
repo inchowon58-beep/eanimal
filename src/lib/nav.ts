@@ -28,10 +28,10 @@ export type QuickServiceId =
   | "funeral"
   | "travel"
   | "rescue"
-  | "regions"
   | "grooming"
   | "cafe"
-  | "shop";
+  | "shop"
+  | "hotel";
 
 export const QUICK_SERVICES: Array<{
   id: QuickServiceId;
@@ -92,9 +92,10 @@ export const QUICK_SERVICES: Array<{
     soon: true,
   },
   {
-    id: "regions",
-    label: "지역별",
-    href: "/regions",
-    tone: "bg-stone-100 text-stone-800",
+    id: "hotel",
+    label: "호텔·펜션",
+    href: "#",
+    tone: "bg-sky-50 text-sky-800",
+    soon: true,
   },
 ];
