@@ -56,6 +56,26 @@ export default function Footer() {
             지역
           </Link>
         </div>
+        <p className="flex items-start gap-1.5 border-t border-border/70 pt-4 text-xs leading-relaxed text-muted-fg">
+          <svg
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden
+          >
+            <path d="M4 9v6h3l5 4V5L7 9H4Z" fill="currentColor" opacity="0.9" />
+            <path
+              d="M16 8.5a4 4 0 0 1 0 7"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span>
+            {SITE.name}는 공공데이터, 관련 기관 공개자료 및 자체 검증 정보를
+            바탕으로 올바른 반려문화 확산을 위해 노력합니다.
+          </span>
+        </p>
       </div>
       <DeletionRequestModal open={open} onClose={() => setOpen(false)} />
     </footer>

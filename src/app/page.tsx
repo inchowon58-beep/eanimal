@@ -52,7 +52,7 @@ export default async function HomePage() {
           {rescueItems.length === 0 ? (
             <Empty hint="공고 데이터를 불러오는 중이거나 이미지가 있는 항목이 없습니다." />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {rescueItems.map((item) => (
                 <Link
                   key={item.desertion_no}
@@ -122,7 +122,7 @@ export default async function HomePage() {
           {travelItems.length === 0 ? (
             <Empty hint="동반여행 장소를 불러오는 중입니다." />
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               {travelItems.map((item) => (
                 <Link
                   key={item.content_id}
@@ -132,11 +132,11 @@ export default async function HomePage() {
                   <div className="relative aspect-[16/10] bg-muted">
                     <RemoteImage src={item.image_url} alt={item.title} />
                   </div>
-                  <div className="p-4">
-                    <h3 className="line-clamp-1 font-semibold text-foreground group-hover:text-accent">
+                  <div className="p-3 sm:p-4">
+                    <h3 className="line-clamp-1 text-sm font-semibold text-foreground group-hover:text-accent sm:text-base">
                       {item.title}
                     </h3>
-                    <p className="mt-1 line-clamp-1 text-sm text-muted-fg">
+                    <p className="mt-1 line-clamp-1 text-xs text-muted-fg sm:text-sm">
                       {[item.sido, item.address].filter(Boolean).join(" · ") ||
                         "주소 미상"}
                     </p>
