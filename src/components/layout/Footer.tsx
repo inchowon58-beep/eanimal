@@ -42,20 +42,6 @@ export default function Footer() {
             </Link>
           </div>
         </div>
-        <div className="flex gap-4 text-xs">
-          <Link href="/places" className="hover:text-foreground">
-            시설 목록
-          </Link>
-          <Link href="/rescues" className="hover:text-foreground">
-            구조공고
-          </Link>
-          <Link href="/travel" className="hover:text-foreground">
-            동반여행
-          </Link>
-          <Link href="/regions" className="hover:text-foreground">
-            지역
-          </Link>
-        </div>
         <p className="flex items-start gap-1.5 border-t border-border/70 pt-4 text-xs leading-relaxed text-muted-fg">
           <svg
             className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
