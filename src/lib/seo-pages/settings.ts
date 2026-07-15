@@ -2,7 +2,6 @@ import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
 import {
   kstDate,
   type QuotaStatus,
-  type SeoBusiness,
   type ServiceStatus,
   type SeoSettings,
 } from "@/lib/seo-pages/types";
@@ -93,49 +92,10 @@ export async function getCategoryImages(): Promise<Record<string, string>> {
   return out;
 }
 
-function sanitizeBusinesses(value: unknown): SeoBusiness[] {
-  if (!Array.isArray(value)) return [];
-  const out: SeoBusiness[] = [];
-  for (const v of value) {
-    if (!v || typeof v !== "object") continue;
-    const b = v as Record<string, unknown>;
-    const name = typeof b.name === "string" ? b.name.trim() : "";
-    const phone = typeof b.phone === "string" ? b.phone.trim() : "";
-    if (!name && !phone) continue;
-    out.push({
-      id: typeof b.id === "string" && b.id ? b.id : Math.random().toString(36).slice(2, 10),
-      name,
-      phone,
-      description: typeof b.description === "string" ? b.description : "",
-      image_url: typeof b.image_url === "string" ? b.image_url.trim() : "",
-    });
-  }
-  return out;
-}
-
-/** 카테고리별 참고 업체정보 조회 ({ [categoryId]: SeoBusiness[] }) */
-export async function getCategoryBusinesses(): Promise<Record<string, SeoBusiness[]>> {
-  const supabase = getSupabaseService() || getSupabaseServer();
-  if (!supabase) return {};
-  const { data, error } = await supabase
-    .from("seo_settings")
-    .select("category_businesses")
-    .eq("id", "default")
-    .maybeSingle();
-  if (error || !data?.category_businesses) return {};
-  const raw = data.category_businesses as Record<string, unknown>;
-  const out: Record<string, SeoBusiness[]> = {};
-  for (const [k, v] of Object.entries(raw)) {
-    const list = sanitizeBusinesses(v);
-    if (list.length) out[k] = list;
-  }
-  return out;
-}
-
-/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 + 업체정보 저장 (제공된 항목만) */
+/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 저장 (제공된 항목만) */
 export async function saveCategoryConfig(
   categoryId: string,
-  input: { pool?: string; imageFolder?: string; businesses?: SeoBusiness[] }
+  input: { pool?: string; imageFolder?: string }
 ): Promise<{ error: string | null }> {
   const supabase = getSupabaseService();
   if (!supabase) return { error: "service role 키가 필요합니다." };
@@ -153,11 +113,6 @@ export async function saveCategoryConfig(
     const imgs = await getCategoryImages();
     imgs[categoryId] = input.imageFolder;
     row.category_images = imgs;
-  }
-  if (input.businesses !== undefined) {
-    const all = await getCategoryBusinesses();
-    all[categoryId] = sanitizeBusinesses(input.businesses);
-    row.category_businesses = all;
   }
 
   const { error } = await supabase

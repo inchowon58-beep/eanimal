@@ -3,12 +3,10 @@ import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { SEO_CATEGORIES, isValidCategory } from "@/lib/seo-pages/categories";
 import { listFolderImages } from "@/lib/seo-pages/images";
 import {
-  getCategoryBusinesses,
   getCategoryImages,
   getCategoryPools,
   saveCategoryConfig,
 } from "@/lib/seo-pages/settings";
-import type { SeoBusiness } from "@/lib/seo-pages/types";
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +24,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, count: urls.length, sample: urls.slice(0, 8) });
   }
 
-  const [pools, images, businesses] = await Promise.all([
-    getCategoryPools(),
-    getCategoryImages(),
-    getCategoryBusinesses(),
-  ]);
+  const [pools, images] = await Promise.all([getCategoryPools(), getCategoryImages()]);
   const categories = SEO_CATEGORIES.map((c) => ({
     id: c.id,
     label: c.label,
     topic: c.topic,
     pool: pools[c.id] ?? c.defaultPool,
     imageFolder: images[c.id] ?? "",
-    businesses: businesses[c.id] ?? [],
     isDefault: pools[c.id] === undefined,
   }));
   return NextResponse.json({ ok: true, categories });
@@ -50,7 +43,6 @@ export async function PUT(req: Request) {
     id?: string;
     pool?: string;
     imageFolder?: string;
-    businesses?: SeoBusiness[];
   } | null;
   const id = body?.id;
   if (!id || !isValidCategory(id)) {
@@ -59,7 +51,6 @@ export async function PUT(req: Request) {
   const { error } = await saveCategoryConfig(id, {
     pool: body?.pool,
     imageFolder: body?.imageFolder,
-    businesses: body?.businesses,
   });
   if (error) return NextResponse.json({ ok: false, error }, { status: 500 });
   return NextResponse.json({ ok: true, message: "카테고리 설정을 저장했습니다." });

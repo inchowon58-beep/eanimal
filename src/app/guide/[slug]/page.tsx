@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
+import ConsultationCTA from "@/components/seo/ConsultationCTA";
 import JsonLd from "@/components/seo/JsonLd";
 import KeywordTags from "@/components/seo/KeywordTags";
-import PartnerBusiness from "@/components/seo/PartnerBusiness";
 import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { getCategory } from "@/lib/seo-pages/categories";
@@ -131,7 +131,7 @@ export default async function GuidePage({ params }: Props) {
     <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-10 sm:pb-28">
       <JsonLd data={jsonLd} />
       <MarketingBanner placement="main_top" />
-      <PartnerBusiness category={page.category} keyword={page.keyword} />
+      <ConsultationCTA keyword={page.keyword} slug={page.slug} />
       <Link href="/" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← {SITE.name}
       </Link>

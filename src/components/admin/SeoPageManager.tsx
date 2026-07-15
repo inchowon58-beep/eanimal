@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { SEO_CATEGORIES } from "@/lib/seo-pages/categories";
-import type { SeoBusiness } from "@/lib/seo-pages/types";
 
 interface SeoPageRow {
   id: string;
@@ -20,7 +19,6 @@ interface CategoryRow {
   topic: string;
   pool: string;
   imageFolder: string;
-  businesses: SeoBusiness[];
   isDefault: boolean;
 }
 
@@ -87,15 +85,6 @@ export default function SeoPageManager() {
   const [poolSaving, setPoolSaving] = useState(false);
   const [imgPreview, setImgPreview] = useState<{ count: number; sample: string[] } | null>(null);
   const [imgChecking, setImgChecking] = useState(false);
-
-  const [businesses, setBusinesses] = useState<SeoBusiness[]>([]);
-  const [bizModal, setBizModal] = useState(false);
-  const [bizEditId, setBizEditId] = useState<string | null>(null);
-  const [bizName, setBizName] = useState("");
-  const [bizPhone, setBizPhone] = useState("");
-  const [bizDesc, setBizDesc] = useState("");
-  const [bizImage, setBizImage] = useState("");
-  const [bizSaving, setBizSaving] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
@@ -174,7 +163,6 @@ export default function SeoPageManager() {
     if (row) {
       setPoolText(row.pool);
       setImageFolder(row.imageFolder || "");
-      setBusinesses(row.businesses || []);
     }
     setImgPreview(null);
   }, [categories, category]);
@@ -308,72 +296,6 @@ export default function SeoPageManager() {
       setMessage("카테고리 설정 저장 중 오류가 발생했습니다.");
     }
     setPoolSaving(false);
-  }
-
-  function openAddBiz() {
-    setBizEditId(null);
-    setBizName("");
-    setBizPhone("");
-    setBizDesc("");
-    setBizImage("");
-    setBizModal(true);
-  }
-
-  function openEditBiz(b: SeoBusiness) {
-    setBizEditId(b.id);
-    setBizName(b.name);
-    setBizPhone(b.phone);
-    setBizDesc(b.description);
-    setBizImage(b.image_url);
-    setBizModal(true);
-  }
-
-  async function persistBusinesses(list: SeoBusiness[]) {
-    setBizSaving(true);
-    try {
-      const res = await fetch("/api/admin/seo-categories", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: category, businesses: list }),
-      });
-      const d = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setBusinesses(list);
-        setCategories((prev) =>
-          prev.map((c) => (c.id === category ? { ...c, businesses: list } : c))
-        );
-        setMessage(d.message || "업체정보를 저장했습니다.");
-      } else {
-        setMessage(d.error || "업체정보 저장 실패");
-      }
-    } catch {
-      setMessage("업체정보 저장 중 오류가 발생했습니다.");
-    }
-    setBizSaving(false);
-  }
-
-  async function saveBiz() {
-    if (!bizName.trim() && !bizPhone.trim()) {
-      setMessage("업체명 또는 전화번호를 입력하세요.");
-      return;
-    }
-    const entry: SeoBusiness = {
-      id: bizEditId || Math.random().toString(36).slice(2, 10),
-      name: bizName.trim(),
-      phone: bizPhone.trim(),
-      description: bizDesc.trim(),
-      image_url: bizImage.trim(),
-    };
-    const list = bizEditId
-      ? businesses.map((b) => (b.id === bizEditId ? entry : b))
-      : [...businesses, entry];
-    await persistBusinesses(list);
-    setBizModal(false);
-  }
-
-  async function deleteBiz(id: string) {
-    if (!confirm("이 업체정보를 삭제하시겠습니까?")) return;
-    await persistBusinesses(businesses.filter((b) => b.id !== id));
   }
 
   async function checkImages() {
@@ -598,77 +520,6 @@ export default function SeoPageManager() {
                   </p>
                 )}
               </div>
-            )}
-          </div>
-
-          {/* 참고 업체정보 */}
-          <div className="mt-4 border-t border-border pt-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-medium text-foreground">
-                참고 업체정보{" "}
-                <span className="text-xs font-normal text-muted-fg">
-                  (여러 개 등록 시 방문마다 랜덤 1개 상단 노출)
-                </span>
-              </p>
-              <button
-                type="button"
-                onClick={openAddBiz}
-                className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold text-white"
-              >
-                + 업체등록
-              </button>
-            </div>
-            {businesses.length === 0 ? (
-              <p className="mt-3 text-xs text-muted-fg">
-                등록된 업체가 없습니다. 페이지 상단에 노출할 업체를 등록하세요.
-              </p>
-            ) : (
-              <ul className="mt-3 space-y-2">
-                {businesses.map((b) => (
-                  <li
-                    key={b.id}
-                    className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
-                  >
-                    {b.image_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={b.image_url}
-                        alt=""
-                        className="h-12 w-12 shrink-0 rounded-lg border border-border object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-muted/40 text-lg">
-                        🏢
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">
-                        {b.name || "(이름 없음)"}
-                      </p>
-                      <p className="truncate text-xs text-muted-fg">
-                        {[b.phone, b.description].filter(Boolean).join(" · ")}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 gap-1.5">
-                      <button
-                        type="button"
-                        onClick={() => openEditBiz(b)}
-                        className="rounded-lg border border-border px-2.5 py-1 text-xs text-foreground hover:bg-muted"
-                      >
-                        수정
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => deleteBiz(b.id)}
-                        disabled={bizSaving}
-                        className="rounded-lg border border-danger/40 px-2.5 py-1 text-xs text-danger disabled:opacity-50"
-                      >
-                        삭제
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             )}
           </div>
         </div>
@@ -995,94 +846,6 @@ export default function SeoPageManager() {
           </>
         )}
       </section>
-
-      {bizModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setBizModal(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-foreground">
-              {bizEditId ? "업체정보 수정" : "업체정보 등록"}
-            </h3>
-            <p className="mt-1 text-xs text-muted-fg">
-              방문자에게 상단에 노출됩니다. 매력적으로 작성해 주세요.
-            </p>
-
-            <div className="mt-4 space-y-3">
-              <div>
-                <label className="text-xs font-medium text-muted-fg">업체명</label>
-                <input
-                  type="text"
-                  value={bizName}
-                  onChange={(e) => setBizName(e.target.value)}
-                  placeholder="예: 행복한 강아지 분양센터"
-                  className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-fg">전화번호</label>
-                <input
-                  type="tel"
-                  value={bizPhone}
-                  onChange={(e) => setBizPhone(e.target.value)}
-                  placeholder="예: 010-1234-5678"
-                  className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-fg">업체설명</label>
-                <textarea
-                  value={bizDesc}
-                  onChange={(e) => setBizDesc(e.target.value)}
-                  rows={3}
-                  placeholder="예: 20년 경력, 건강검진 완료된 아이들만 정성껏 분양합니다."
-                  className="mt-1 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-muted-fg">이미지 주소</label>
-                <input
-                  type="text"
-                  value={bizImage}
-                  onChange={(e) => setBizImage(e.target.value)}
-                  placeholder="예: https://image.cattery.co.kr/dogboho/01.webp"
-                  className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-                />
-                {bizImage.trim() && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={bizImage.trim()}
-                    alt=""
-                    className="mt-2 h-24 w-full rounded-lg border border-border object-cover"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setBizModal(false)}
-                className="rounded-xl border border-border px-4 py-2 text-sm text-muted-fg hover:text-foreground"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                onClick={saveBiz}
-                disabled={bizSaving}
-                className="rounded-xl bg-accent px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
-              >
-                {bizSaving ? "저장 중..." : "저장"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
