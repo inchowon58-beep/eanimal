@@ -477,7 +477,7 @@ export default function SeoPageManager() {
                 type="text"
                 value={imageFolder}
                 onChange={(e) => setImageFolder(e.target.value)}
-                placeholder="예: shelter (seo-images 버킷 안 폴더명)"
+                placeholder="예: https://image.cattery.co.kr/dogboho"
                 className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
               />
               <button
@@ -490,12 +490,15 @@ export default function SeoPageManager() {
               </button>
             </div>
             <p className="mt-2 text-xs text-muted-fg">
-              폴더명만 입력하세요(예: <strong className="text-foreground">shelter</strong>). 전체 URL을 붙여넣어도 인식합니다.
+              <strong className="text-foreground">외부 사이트의 이미지 폴더 URL</strong>을 입력하세요 (예:{" "}
+              <strong className="text-foreground">https://image.cattery.co.kr/dogboho</strong>). 그 폴더의 디렉터리
+              목록(자동 인덱스)이나 <code>index.json</code>·<code>list.txt</code> 를 읽어 이미지를 가져옵니다.
               <br />
-              Supabase Storage의 <strong className="text-foreground">seo-images</strong> 버킷(공개)에 폴더를 만들어 이미지를 올린 뒤,
-              폴더명을 입력하고 <strong className="text-foreground">이미지 확인</strong>으로 몇 장 잡히는지 확인하세요. 생성 시 그
-              폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을 뽑아 한 줄 1·2·3장, 큰 사진+작은 사진,
+              입력 후 <strong className="text-foreground">이미지 확인</strong>으로 몇 장 잡히는지 먼저 확인하세요. 생성 시
+              그 폴더에서 <strong className="text-foreground">랜덤 7~12장</strong>을 뽑아 한 줄 1·2·3장, 큰 사진+작은 사진,
               좌/우 이미지+글 등 무작위 배치로 본문에 넣습니다. 비워두면 이미지 없이 글만 생성됩니다.
+              <br />
+              (Supabase <strong className="text-foreground">seo-images</strong> 버킷 폴더명 방식도 계속 지원합니다.)
             </p>
             {imgPreview && (
               <div className="mt-3 rounded-xl border border-border bg-background p-3">

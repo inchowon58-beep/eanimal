@@ -2,6 +2,8 @@ import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
 
 const BUCKET = process.env.SEO_IMAGE_BUCKET || "seo-images";
 const IMG_RE = /\.(png|jpe?g|webp|gif|avif)$/i;
+/** URL용 확장자 매칭 (쿼리스트링 허용) */
+const IMG_URL_RE = /\.(png|jpe?g|webp|gif|avif)(\?[^\s"']*)?$/i;
 
 function strHash(s: string): number {
   let h = 0;
@@ -58,9 +60,111 @@ function parseFolderInput(input: string | null | undefined): { bucket: string; p
   return { bucket: BUCKET, prefix: raw.replace(/^\/+|\/+$/g, "") };
 }
 
-/** Supabase Storage 폴더의 이미지 public URL 목록 */
+function isSupabasePublicUrl(raw: string): boolean {
+  return raw.includes("/storage/v1/object/public/");
+}
+
+function absolutize(base: string, ref: string): string {
+  try {
+    return new URL(ref, base).href;
+  } catch {
+    return "";
+  }
+}
+
+async function fetchText(url: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; eanimal-bot)" },
+      cache: "no-store",
+      signal: controller.signal,
+    });
+    if (!res.ok) return null;
+    return await res.text();
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** HTML(디렉터리 자동 인덱스)에서 이미지 링크 추출 */
+function parseHtmlImages(html: string, base: string): string[] {
+  const out: string[] = [];
+  const re = /(?:href|src)\s*=\s*["']([^"']+)["']/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const ref = m[1];
+    if (!IMG_URL_RE.test(ref)) continue;
+    const abs = absolutize(base, ref);
+    if (abs) out.push(abs);
+  }
+  return out;
+}
+
+/**
+ * 외부 사이트 폴더 URL에서 이미지 목록을 읽는다.
+ * 우선순위: index.json(문자열 배열) → list.txt(줄바꿈) → 디렉터리 자동 인덱스 HTML 파싱
+ * 예) https://image.cattery.co.kr/dogboho
+ */
+export async function listExternalFolderImages(folderUrl: string): Promise<string[]> {
+  const base = folderUrl.endsWith("/") ? folderUrl : `${folderUrl}/`;
+
+  // 1) index.json 매니페스트
+  const manifest = await fetchText(`${base}index.json`);
+  if (manifest) {
+    try {
+      const arr = JSON.parse(manifest);
+      if (Array.isArray(arr)) {
+        const urls = arr
+          .map((x) => (typeof x === "string" ? absolutize(base, x) : ""))
+          .filter((u) => u && IMG_URL_RE.test(u));
+        if (urls.length) return Array.from(new Set(urls));
+      }
+    } catch {
+      /* not json */
+    }
+  }
+
+  // 2) list.txt (한 줄에 파일명 또는 URL)
+  const listTxt = await fetchText(`${base}list.txt`);
+  if (listTxt && listTxt.trim()) {
+    const urls = listTxt
+      .split(/\r?\n/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => absolutize(base, s))
+      .filter((u) => u && IMG_URL_RE.test(u));
+    if (urls.length) return Array.from(new Set(urls));
+  }
+
+  // 3) 디렉터리 자동 인덱스 HTML
+  const html = await fetchText(base);
+  if (html) {
+    const urls = parseHtmlImages(html, base);
+    if (urls.length) return Array.from(new Set(urls));
+  }
+
+  return [];
+}
+
+/**
+ * 이미지 폴더에서 이미지 URL 목록을 반환한다.
+ * - 외부 http(s) 폴더 URL → 그 폴더의 이미지 목록 (예: https://image.cattery.co.kr/dogboho)
+ * - Supabase public URL / 폴더명 → Supabase Storage 버킷 조회
+ */
 export async function listFolderImages(folder: string | null | undefined): Promise<string[]> {
-  const { bucket, prefix } = parseFolderInput(folder);
+  const raw = (folder || "").trim();
+  if (!raw) return [];
+
+  // 외부 폴더 URL (Supabase 스토리지 URL이 아닌 일반 http URL)
+  if (/^https?:\/\//i.test(raw) && !isSupabasePublicUrl(raw)) {
+    return listExternalFolderImages(raw);
+  }
+
+  const { bucket, prefix } = parseFolderInput(raw);
   const supabase = getSupabaseService() || getSupabaseServer();
   if (!supabase) return [];
   try {
