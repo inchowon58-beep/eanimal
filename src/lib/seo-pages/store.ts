@@ -33,6 +33,34 @@ export async function getSeoPageBySlug(slug: string): Promise<SeoPage | null> {
   return data as SeoPage;
 }
 
+export interface RelatedGuideItem {
+  slug: string;
+  keyword: string;
+  title: string;
+  image_url: string | null;
+}
+
+/** 같은 카테고리의 공개 페이지 풀(최근순, 현재 글 제외). 컴포넌트에서 랜덤 추출용. */
+export async function listCategoryGuidePool(
+  category: string | null | undefined,
+  excludeSlug: string,
+  poolLimit = 300
+): Promise<RelatedGuideItem[]> {
+  const supabase = getSupabaseServer();
+  if (!supabase) return [];
+  let q = supabase
+    .from("seo_pages")
+    .select("slug, keyword, title, image_url")
+    .eq("hidden", false)
+    .neq("slug", excludeSlug)
+    .order("created_at", { ascending: false })
+    .limit(poolLimit);
+  if (category) q = q.eq("category", category);
+  const { data, error } = await q;
+  if (error || !data) return [];
+  return data as RelatedGuideItem[];
+}
+
 export async function slugExists(slug: string): Promise<boolean> {
   const supabase = getSupabaseService() || getSupabaseServer();
   if (!supabase) return false;
