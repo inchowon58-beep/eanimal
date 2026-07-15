@@ -7,6 +7,7 @@ import {
   getCategoryForms,
   getCategoryImages,
   getCategoryPools,
+  getCategoryTelegram,
   saveCategoryConfig,
 } from "@/lib/seo-pages/settings";
 
@@ -26,10 +27,11 @@ export async function GET(req: Request) {
     return NextResponse.json({ ok: true, count: urls.length, sample: urls.slice(0, 8) });
   }
 
-  const [pools, images, forms] = await Promise.all([
+  const [pools, images, forms, telegram] = await Promise.all([
     getCategoryPools(),
     getCategoryImages(),
     getCategoryForms(),
+    getCategoryTelegram(),
   ]);
   const categories = SEO_CATEGORIES.map((c) => ({
     id: c.id,
@@ -39,6 +41,7 @@ export async function GET(req: Request) {
     imageFolder: images[c.id] ?? "",
     form: forms[c.id] ?? defaultCategoryForm(c.id),
     formCustomized: forms[c.id] !== undefined,
+    telegram: telegram[c.id] ?? [],
     isDefault: pools[c.id] === undefined,
   }));
   return NextResponse.json({ ok: true, categories });
@@ -52,15 +55,24 @@ export async function PUT(req: Request) {
     pool?: string;
     imageFolder?: string;
     form?: CategoryForm;
+    telegram?: string;
   } | null;
   const id = body?.id;
   if (!id || !isValidCategory(id)) {
     return NextResponse.json({ ok: false, error: "유효한 카테고리가 아닙니다." }, { status: 400 });
   }
+  const telegram =
+    body?.telegram !== undefined
+      ? body.telegram
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
   const { error } = await saveCategoryConfig(id, {
     pool: body?.pool,
     imageFolder: body?.imageFolder,
     form: body?.form,
+    telegram,
   });
   if (error) return NextResponse.json({ ok: false, error }, { status: 500 });
   return NextResponse.json({ ok: true, message: "카테고리 설정을 저장했습니다." });

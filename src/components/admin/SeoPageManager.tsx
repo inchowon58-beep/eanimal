@@ -27,6 +27,7 @@ interface CategoryRow {
   imageFolder: string;
   form: CategoryForm;
   formCustomized: boolean;
+  telegram: string[];
   isDefault: boolean;
 }
 
@@ -98,6 +99,10 @@ export default function SeoPageManager() {
   const [formFields, setFormFields] = useState<ConsultField[]>([]);
   const [formSaving, setFormSaving] = useState(false);
   const [configOpen, setConfigOpen] = useState(false);
+  const [telegramText, setTelegramText] = useState("");
+  const [tgConfigured, setTgConfigured] = useState<boolean | null>(null);
+  const [tgChats, setTgChats] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [tgBusy, setTgBusy] = useState(false);
 
   const [copyState, setCopyState] = useState<CopyState | null>(null);
 
@@ -178,6 +183,7 @@ export default function SeoPageManager() {
       setImageFolder(row.imageFolder || "");
       setFormIntro(row.form?.intro || "");
       setFormFields(row.form?.fields ? row.form.fields.map((f) => ({ ...f })) : []);
+      setTelegramText((row.telegram || []).join("\n"));
     }
     setImgPreview(null);
   }, [categories, category]);
@@ -296,14 +302,20 @@ export default function SeoPageManager() {
       const res = await fetch("/api/admin/seo-categories", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: category, pool: poolText, imageFolder }),
+        body: JSON.stringify({ id: category, pool: poolText, imageFolder, telegram: telegramText }),
       });
       const d = await res.json().catch(() => ({}));
       setMessage(d.message || d.error || (res.ok ? "저장 완료" : "저장 실패"));
       if (res.ok) {
+        const tgArr = telegramText
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean);
         setCategories((prev) =>
           prev.map((c) =>
-            c.id === category ? { ...c, pool: poolText, imageFolder, isDefault: false } : c
+            c.id === category
+              ? { ...c, pool: poolText, imageFolder, telegram: tgArr, isDefault: false }
+              : c
           )
         );
       }
@@ -336,6 +348,63 @@ export default function SeoPageManager() {
       setMessage("이미지 확인 중 오류가 발생했습니다.");
     }
     setImgChecking(false);
+  }
+
+  async function loadTelegramChats() {
+    setTgBusy(true);
+    try {
+      const res = await fetch("/api/admin/telegram", { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setTgConfigured(Boolean(d.configured));
+        setTgChats(d.chats || []);
+        if (!d.configured) {
+          setMessage("봇 토큰(TELEGRAM_BOT_TOKEN)이 설정되지 않았습니다.");
+        } else if ((d.chats || []).length === 0) {
+          setMessage("최근 대화가 없습니다. 봇에게 먼저 메시지를 보내거나 그룹에 봇을 초대하세요.");
+        } else {
+          setMessage(`대화 ${d.chats.length}건을 불러왔습니다.`);
+        }
+      } else {
+        setMessage(d.error || "불러오기 실패");
+      }
+    } catch {
+      setMessage("텔레그램 대화 목록을 불러오지 못했습니다.");
+    }
+    setTgBusy(false);
+  }
+
+  async function testTelegram(chatId: string) {
+    if (!chatId.trim()) {
+      setMessage("먼저 chat_id를 입력하세요.");
+      return;
+    }
+    setTgBusy(true);
+    try {
+      const res = await fetch("/api/admin/telegram", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chatId: chatId.trim() }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setMessage(res.ok ? "테스트 메시지를 발송했습니다." : d.error || "발송 실패");
+    } catch {
+      setMessage("테스트 발송 중 오류가 발생했습니다.");
+    }
+    setTgBusy(false);
+  }
+
+  function addTelegramId(id: string) {
+    setTelegramText((prev) => {
+      const set = new Set(
+        prev
+          .split(/[\n,]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      );
+      set.add(id);
+      return Array.from(set).join("\n");
+    });
   }
 
   function addFormField() {
@@ -719,6 +788,79 @@ export default function SeoPageManager() {
                 ))}
               </ul>
             )}
+          </div>
+
+          {/* 텔레그램 알림 */}
+          <div className="mt-4 border-t border-border pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <p className="text-sm font-medium text-foreground">
+                텔레그램 알림 수신 대상{" "}
+                <span className="text-xs font-normal text-muted-fg">
+                  (이 카테고리 신청이 오면 아래 chat_id로 전송)
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={loadTelegramChats}
+                disabled={tgBusy}
+                className="rounded-lg border border-accent px-3 py-1.5 text-xs font-bold text-accent disabled:opacity-50"
+              >
+                {tgBusy ? "불러오는 중..." : "채팅 목록 불러오기"}
+              </button>
+            </div>
+
+            <textarea
+              value={telegramText}
+              onChange={(e) => setTelegramText(e.target.value)}
+              rows={2}
+              placeholder="chat_id를 한 줄에 하나씩 입력 (여러 명이면 여러 줄, 또는 그룹 chat_id 하나)"
+              className="mt-2 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+            />
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => testTelegram(telegramText.split(/[\n,]+/)[0] || "")}
+                disabled={tgBusy}
+                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+              >
+                첫 번째 대상에 테스트 발송
+              </button>
+              <span className="text-xs text-muted-fg">
+                * 변경 후 위 <strong className="text-foreground">카테고리 설정 저장</strong>을 눌러야
+                적용됩니다.
+              </span>
+            </div>
+
+            {tgConfigured === false && (
+              <p className="mt-2 text-xs text-danger">
+                봇 토큰이 없습니다. Vercel 환경변수 <code>TELEGRAM_BOT_TOKEN</code>을 설정하세요.
+              </p>
+            )}
+            {tgChats.length > 0 && (
+              <div className="mt-2 rounded-xl border border-border bg-background p-3">
+                <p className="text-xs font-medium text-foreground">최근 대화 (클릭하면 추가)</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {tgChats.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => addTelegramId(c.id)}
+                      className="rounded-lg border border-border px-2.5 py-1.5 text-xs hover:border-accent"
+                      title={`chat_id: ${c.id}`}
+                    >
+                      {c.name}{" "}
+                      <span className="text-muted-fg">
+                        ({c.type} · {c.id})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <p className="mt-2 text-xs leading-relaxed text-muted-fg">
+              여러 명이 봐야 하면 텔레그램 <strong className="text-foreground">그룹</strong>을 만들어
+              봇을 초대한 뒤 그룹 chat_id 하나만 넣거나, 각자의 chat_id를 여러 줄로 넣으세요.
+            </p>
           </div>
         </div>
         )}

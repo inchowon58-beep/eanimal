@@ -54,3 +54,7 @@ create index if not exists consultation_requests_created_idx
 -- SEO 카테고리별 상담 신청서 양식 저장
 alter table public.seo_settings
   add column if not exists category_forms jsonb not null default '{}';
+
+-- SEO 카테고리별 텔레그램 알림 수신 대상(chat_id 배열)
+alter table public.seo_settings
+  add column if not exists category_telegram jsonb not null default '{}';

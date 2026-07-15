@@ -112,10 +112,30 @@ export async function getCategoryForms(): Promise<Record<string, CategoryForm>> 
   return out;
 }
 
-/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 + 신청서 양식 저장 (제공된 항목만) */
+/** 카테고리별 텔레그램 알림 수신 대상 조회 ({ [categoryId]: chatId[] }) */
+export async function getCategoryTelegram(): Promise<Record<string, string[]>> {
+  const supabase = getSupabaseService() || getSupabaseServer();
+  if (!supabase) return {};
+  const { data, error } = await supabase
+    .from("seo_settings")
+    .select("category_telegram")
+    .eq("id", "default")
+    .maybeSingle();
+  if (error || !data?.category_telegram) return {};
+  const raw = data.category_telegram as Record<string, unknown>;
+  const out: Record<string, string[]> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (Array.isArray(v)) {
+      out[k] = v.map((x) => String(x).trim()).filter(Boolean);
+    }
+  }
+  return out;
+}
+
+/** 카테고리 1개의 연관 키워드 풀 + 이미지 폴더 + 신청서 양식 + 텔레그램 대상 저장 (제공된 항목만) */
 export async function saveCategoryConfig(
   categoryId: string,
-  input: { pool?: string; imageFolder?: string; form?: CategoryForm }
+  input: { pool?: string; imageFolder?: string; form?: CategoryForm; telegram?: string[] }
 ): Promise<{ error: string | null }> {
   const supabase = getSupabaseService();
   if (!supabase) return { error: "service role 키가 필요합니다." };
@@ -139,6 +159,11 @@ export async function saveCategoryConfig(
     const clean = sanitizeForm(input.form);
     if (clean) forms[categoryId] = clean;
     row.category_forms = forms;
+  }
+  if (input.telegram !== undefined) {
+    const tg = await getCategoryTelegram();
+    tg[categoryId] = input.telegram.map((x) => x.trim()).filter(Boolean);
+    row.category_telegram = tg;
   }
 
   const { error } = await supabase

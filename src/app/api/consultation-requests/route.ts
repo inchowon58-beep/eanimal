@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
+import { getCategory } from "@/lib/seo-pages/categories";
+import { notifyConsultation } from "@/lib/telegram/notify";
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
@@ -79,6 +81,21 @@ export async function POST(req: Request) {
       { ok: false, error: "접수에 실패했습니다. 잠시 후 다시 시도해 주세요." },
       { status: 500 }
     );
+  }
+
+  // 텔레그램 알림 (실패해도 접수는 성공 처리)
+  try {
+    await notifyConsultation({
+      categoryId: category || null,
+      categoryLabel: getCategory(category)?.label || category || "상담",
+      name,
+      phone,
+      answers,
+      keyword: body?.sourceKeyword?.trim() || "",
+      pageUrl: body?.pageUrl?.trim() || "",
+    });
+  } catch (e) {
+    console.error("[consultation telegram]", (e as Error).message);
   }
 
   return NextResponse.json({ ok: true });
