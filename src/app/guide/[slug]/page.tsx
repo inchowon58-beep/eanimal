@@ -126,7 +126,7 @@ export default async function GuidePage({ params }: Props) {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-10">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
       <MarketingBanner placement="main_top" />
       <Link href="/" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
