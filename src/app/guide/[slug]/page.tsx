@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import JsonLd from "@/components/seo/JsonLd";
 import KeywordTags from "@/components/seo/KeywordTags";
+import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { getCategory } from "@/lib/seo-pages/categories";
 import { getSeoPageBySlug } from "@/lib/seo-pages/store";
@@ -161,6 +162,8 @@ export default async function GuidePage({ params }: Props) {
       )}
 
       {tags.length > 0 && <KeywordTags title={tagsTitle} tags={tags} />}
+
+      <RegionalRelated sido={page.region_name} sigungu={page.region_sigungu} />
 
       <RelatedGuides
         category={page.category}
