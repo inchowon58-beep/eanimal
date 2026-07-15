@@ -1,7 +1,8 @@
+import Image from "next/image";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 
-/** 헤더용 정사각 협회 로고 + 명칭 */
+/** 헤더용 협회 엠블럼 로고 + 명칭 */
 export default function SiteLogo({
   compact = false,
 }: {
@@ -13,16 +14,14 @@ export default function SiteLogo({
       className="group flex min-w-0 items-center gap-2.5"
       aria-label={SITE.name}
     >
-      <span
-        className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#c9a86a]/70 bg-gradient-to-br from-[#0b3d3a] via-[#0f5c56] to-[#0a4a45] shadow-sm sm:h-11 sm:w-11"
-        aria-hidden
-      >
-        <span className="absolute inset-[10%] rounded-md border border-[#c9a86a]/50" />
-        <span className="relative font-display text-lg font-bold leading-none tracking-tight text-[#f5f0e6] sm:text-xl">
-          반
-        </span>
-        <span className="absolute bottom-1.5 h-0.5 w-4 rounded-full bg-[#c9a86a]/90" />
-      </span>
+      <Image
+        src="/logo.png"
+        alt={`${SITE.name} 로고`}
+        width={44}
+        height={44}
+        priority
+        className="h-10 w-10 shrink-0 object-contain sm:h-11 sm:w-11"
+      />
       {!compact && (
         <span className="min-w-0">
           <span className="block truncate font-display text-sm font-bold leading-tight tracking-tight text-foreground sm:text-[15px]">
