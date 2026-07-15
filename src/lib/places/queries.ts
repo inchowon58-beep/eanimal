@@ -59,6 +59,7 @@ export async function listPlaces(
       "id, local_id, category, title, status, address_road, address_jibun, phone, sido, sigungu, updated_at",
       { count: "exact" }
     )
+    .eq("hidden", false)
     .order("is_inactive", { ascending: true })
     .order("title", { ascending: true })
     .range(from, to);
@@ -105,6 +106,7 @@ async function fetchDistinctSigungu(sido: string): Promise<string[]> {
       .from("places")
       .select("sigungu")
       .eq("sido", sido)
+      .eq("hidden", false)
       .not("sigungu", "is", null)
       .range(from, from + pageSize - 1);
 
@@ -129,6 +131,7 @@ export async function getPlaceById(id: string): Promise<Place | null> {
       "id, local_id, category, title, status, address_road, address_jibun, phone, sido, sigungu, updated_at"
     )
     .eq("id", id)
+    .eq("hidden", false)
     .maybeSingle();
 
   if (error) {

@@ -27,6 +27,7 @@ export async function listRescues(opts: {
   let query = supabase
     .from("rescued_animals")
     .select("*", { count: "exact" })
+    .eq("hidden", false)
     .order("has_image", { ascending: false })
     .order("happen_dt", { ascending: false })
     .range(from, to);
@@ -68,6 +69,7 @@ export async function getRescueByDesertionNo(
     .from("rescued_animals")
     .select("*")
     .eq("desertion_no", desertionNo)
+    .eq("hidden", false)
     .maybeSingle();
   if (error) {
     console.error("[getRescue]", error.message);

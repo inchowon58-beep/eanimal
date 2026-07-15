@@ -49,6 +49,7 @@ export async function listSigunguForSido(sido: string): Promise<string[]> {
     .from("places")
     .select("sigungu")
     .eq("sido", sido)
+    .eq("hidden", false)
     .not("sigungu", "is", null)
     .limit(5000);
 
@@ -67,6 +68,7 @@ export async function listDistinctSido(): Promise<string[]> {
   const { data, error } = await supabase
     .from("places")
     .select("sido")
+    .eq("hidden", false)
     .not("sido", "is", null)
     .limit(5000);
 

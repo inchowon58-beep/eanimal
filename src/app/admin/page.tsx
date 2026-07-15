@@ -2,17 +2,13 @@ import { redirect } from "next/navigation";
 import { isAdminLoggedIn } from "@/lib/admin-auth";
 import { getSupabaseService, getSupabaseServer } from "@/lib/supabase/server";
 import AdminHeader from "@/components/admin/AdminHeader";
+import DeletionRequestManager, {
+  type DeletionRequestRow,
+} from "@/components/admin/DeletionRequestManager";
 
 export const dynamic = "force-dynamic";
 
-interface DeletionRequest {
-  id: string;
-  business_name: string;
-  target_url: string;
-  reason: string;
-  status: string;
-  created_at: string;
-}
+type DeletionRequest = DeletionRequestRow;
 
 export default async function AdminPage() {
   if (!(await isAdminLoggedIn())) {
@@ -49,31 +45,7 @@ export default async function AdminPage() {
         </p>
       )}
 
-      {rows.length === 0 && !loadError ? (
-        <p className="mt-10 text-sm text-muted-fg">등록된 삭제 요청이 없습니다.</p>
-      ) : (
-        <div className="mt-8 space-y-3">
-          {rows.map((row) => (
-            <article
-              key={row.id}
-              className="rounded-xl border border-border bg-card p-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2 className="font-semibold text-foreground">{row.business_name}</h2>
-                <span className="text-xs text-muted-fg">
-                  {new Date(row.created_at).toLocaleString("ko-KR")} · {row.status}
-                </span>
-              </div>
-              <p className="mt-2 break-all text-sm text-accent">
-                <a href={row.target_url} target="_blank" rel="noreferrer">
-                  {row.target_url}
-                </a>
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm text-muted-fg">{row.reason}</p>
-            </article>
-          ))}
-        </div>
-      )}
+      {!loadError && <DeletionRequestManager initialRows={rows} />}
     </div>
   );
 }

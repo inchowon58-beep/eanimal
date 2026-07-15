@@ -27,6 +27,7 @@ export async function listTravel(opts: {
   let query = supabase
     .from("pet_travel")
     .select("*", { count: "exact" })
+    .eq("hidden", false)
     .order("has_image", { ascending: false })
     .order("title", { ascending: true })
     .range(from, to);
@@ -68,6 +69,7 @@ export async function getTravelByContentId(
     .from("pet_travel")
     .select("*")
     .eq("content_id", contentId)
+    .eq("hidden", false)
     .maybeSingle();
   if (error) {
     console.error("[getTravel]", error.message);

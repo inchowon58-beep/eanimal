@@ -28,6 +28,7 @@ async function collectUrls(type: SyncType, limit: number): Promise<string[]> {
     const { data } = await supabase
       .from("rescued_animals")
       .select("desertion_no, updated_at")
+      .eq("hidden", false)
       .order("updated_at", { ascending: false })
       .limit(limit);
     return (data ?? []).map(
@@ -38,6 +39,7 @@ async function collectUrls(type: SyncType, limit: number): Promise<string[]> {
     const { data } = await supabase
       .from("pet_travel")
       .select("content_id, updated_at")
+      .eq("hidden", false)
       .order("updated_at", { ascending: false })
       .limit(limit);
     return (data ?? []).map(
@@ -47,6 +49,7 @@ async function collectUrls(type: SyncType, limit: number): Promise<string[]> {
   const { data } = await supabase
     .from("places")
     .select("id, updated_at")
+    .eq("hidden", false)
     .order("updated_at", { ascending: false })
     .limit(limit);
   return (data ?? []).map((r) => `/places/${r.id}`);

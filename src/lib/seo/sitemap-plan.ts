@@ -25,7 +25,8 @@ async function tableCount(table: string): Promise<number> {
   if (!supabase) return 0;
   const { count, error } = await supabase
     .from(table)
-    .select("id", { count: "exact", head: true });
+    .select("id", { count: "exact", head: true })
+    .eq("hidden", false);
   if (error) return 0;
   return count ?? 0;
 }
@@ -90,6 +91,7 @@ export async function getChunkUrls(
     const { data } = await supabase
       .from("places")
       .select("id, updated_at")
+      .eq("hidden", false)
       .order("id", { ascending: true })
       .range(chunk.from, chunk.to);
     return (data ?? []).map((r) => ({
@@ -104,6 +106,7 @@ export async function getChunkUrls(
     const { data } = await supabase
       .from("rescued_animals")
       .select("desertion_no, updated_at")
+      .eq("hidden", false)
       .order("desertion_no", { ascending: true })
       .range(chunk.from, chunk.to);
     return (data ?? []).map((r) => ({
@@ -117,6 +120,7 @@ export async function getChunkUrls(
   const { data } = await supabase
     .from("pet_travel")
     .select("content_id, updated_at")
+    .eq("hidden", false)
     .order("content_id", { ascending: true })
     .range(chunk.from, chunk.to);
   return (data ?? []).map((r) => ({
