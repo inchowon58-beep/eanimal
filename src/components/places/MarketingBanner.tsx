@@ -113,16 +113,20 @@ function BannerCard({ banner }: { banner: Banner }) {
   );
 }
 
-/** 관리자 등록 배너 슬롯 — 노출영역(placement)에 맞는 활성 배너를 렌더링 */
+/** 관리자 등록 배너 슬롯 — 노출영역(placement)에 맞는 활성 배너를 렌더링.
+ *  여러 개면 매 요청마다 무작위로 하나를 노출(로테이션)한다. */
 export default async function MarketingBanner({ placement }: { placement: string }) {
   const banners = await getActiveBanners(placement);
   if (banners.length === 0) return null;
 
+  const banner =
+    banners.length === 1
+      ? banners[0]
+      : banners[Math.floor(Math.random() * banners.length)];
+
   return (
     <div className="space-y-3">
-      {banners.map((banner) => (
-        <BannerCard key={banner.id} banner={banner} />
-      ))}
+      <BannerCard banner={banner} />
     </div>
   );
 }

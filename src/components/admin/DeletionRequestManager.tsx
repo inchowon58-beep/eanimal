@@ -66,7 +66,7 @@ export default function DeletionRequestManager({
   }
 
   async function removeRow(row: DeletionRequestRow) {
-    if (!confirm("이 요청 내역을 삭제할까요? (페이지 노출 상태는 변경되지 않습니다)")) return;
+    if (!confirm("이 요청을 처리완료 처리할까요? 목록에서 삭제됩니다.")) return;
     setBusyId(row.id);
     try {
       const res = await fetch(
@@ -124,9 +124,9 @@ export default function DeletionRequestManager({
                   type="button"
                   onClick={() => removeRow(row)}
                   disabled={busy}
-                  className="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-medium text-danger disabled:opacity-60"
+                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:opacity-60"
                 >
-                  요청삭제
+                  처리완료
                 </button>
               </div>
             </div>
