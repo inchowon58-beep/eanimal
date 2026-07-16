@@ -9,6 +9,7 @@ import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { resolveCategoryForm } from "@/lib/consultation/forms";
 import { getCategory } from "@/lib/seo-pages/categories";
+import { resolveRegionDetail } from "@/lib/seo-pages/generate";
 import { getCategoryForms } from "@/lib/seo-pages/settings";
 import { getSeoPageBySlug } from "@/lib/seo-pages/store";
 import { buildGuideHashtags } from "@/lib/seo/region-keywords";
@@ -95,6 +96,15 @@ export default async function GuidePage({ params }: Props) {
   const dbForms = await getCategoryForms();
   const form = resolveCategoryForm(page.category, dbForms);
 
+  // DB에 지역이 비어 있어도 키워드에서 시·도/시군구·동을 다시 추론
+  let sido = page.region_name;
+  let sigungu = page.region_sigungu;
+  if (!sido || !sigungu) {
+    const inferred = await resolveRegionDetail(page.keyword);
+    if (!sido && inferred.sido) sido = inferred.sido;
+    if (!sigungu && inferred.sigungu) sigungu = inferred.sigungu;
+  }
+
   const jsonLd: Record<string, unknown>[] = [
     {
       "@context": "https://schema.org",
@@ -177,7 +187,7 @@ export default async function GuidePage({ params }: Props) {
 
       {tags.length > 0 && <KeywordTags title={tagsTitle} tags={tags} />}
 
-      <RegionalRelated sido={page.region_name} sigungu={page.region_sigungu} />
+      <RegionalRelated sido={sido} sigungu={sigungu} />
 
       <RelatedGuides
         category={page.category}

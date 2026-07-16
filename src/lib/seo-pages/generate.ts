@@ -39,24 +39,88 @@ export function extractRegion(keyword: string): string | null {
   return null;
 }
 
+/** 키워드에서 지역 추정에 방해되는 일반 단어 제거 */
+function stripTopicWords(keyword: string): string {
+  return keyword
+    .replace(/\s+/g, "")
+    .replace(
+      /강아지|고양이|반려견|반려묘|반려동물|유기견|유기묘|유기동물|파양|분양|입양|무료|보호소|보호센터|병원|약국|장례|장묘|카페|호텔|펜션|미용|학원|정보|추천|가격|비용|동반|여행/g,
+      ""
+    );
+}
+
+function matchSigunguInKeyword(
+  keywordCompact: string,
+  sigungu: string
+): boolean {
+  const first = sigungu.trim().split(/\s+/)[0];
+  const stem = first.replace(/(특별자치시|특별시|광역시|자치시|시|군|구)$/, "");
+  return (
+    keywordCompact.includes(first) ||
+    (stem.length >= 2 && keywordCompact.includes(stem))
+  );
+}
+
 /**
  * 키워드에서 시·도 + 시·군·구까지 해석.
- * 시·도가 잡히면 해당 시·도의 시군구 목록을 조회해 키워드에 포함된 지명을 찾는다.
+ * 1) 시·도가 키워드에 있으면 해당 시·도의 시군구 매칭
+ * 2) 없으면 places의 시군구 목록에서 매칭 (예: 금산군강아지파양)
+ * 3) 그래도 없으면 places 주소에서 동·읍·면 등 지명 추론 (예: 이태원동강아지파양)
  */
 export async function resolveRegionDetail(
   keyword: string
 ): Promise<{ sido: string | null; sigungu: string | null }> {
-  const sido = extractRegion(keyword);
-  if (!sido) return { sido: null, sigungu: null };
   const k = keyword.replace(/\s+/g, "");
+  const sido = extractRegion(keyword);
+
   try {
-    const { listSigunguForSido } = await import("@/lib/regions");
-    const list = await listSigunguForSido(sido);
-    for (const sg of list) {
-      const first = sg.trim().split(/\s+/)[0];
-      const stem = first.replace(/(특별자치시|특별시|광역시|자치시|시|군|구)$/, "");
-      if (k.includes(first) || (stem.length >= 2 && k.includes(stem))) {
-        return { sido, sigungu: first };
+    const { getSupabaseServer } = await import("@/lib/supabase/server");
+    const supabase = getSupabaseServer();
+    if (!supabase) return { sido, sigungu: null };
+
+    // 시·도·시군구 후보를 한 번에 가져옴
+    let pairsQuery = supabase
+      .from("places")
+      .select("sido, sigungu")
+      .eq("hidden", false)
+      .not("sido", "is", null)
+      .not("sigungu", "is", null)
+      .limit(8000);
+    if (sido) pairsQuery = pairsQuery.eq("sido", sido);
+
+    const { data: pairs } = await pairsQuery;
+    if (pairs?.length) {
+      const seen = new Set<string>();
+      for (const row of pairs as { sido: string; sigungu: string }[]) {
+        const key = `${row.sido}|${row.sigungu}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (matchSigunguInKeyword(k, row.sigungu)) {
+          return { sido: row.sido, sigungu: row.sigungu.trim().split(/\s+/)[0] };
+        }
+      }
+    }
+
+    if (sido) return { sido, sigungu: null };
+
+    // 동·읍·면 등: places 주소로 추론
+    const placeHint = stripTopicWords(keyword).replace(/(동|읍|면|리)$/, "");
+    if (placeHint.length >= 2) {
+      const { data } = await supabase
+        .from("places")
+        .select("sido, sigungu")
+        .eq("hidden", false)
+        .or(
+          `address_road.ilike.%${placeHint}%,address_jibun.ilike.%${placeHint}%,sigungu.ilike.%${placeHint}%`
+        )
+        .not("sido", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (data?.sido) {
+        return {
+          sido: data.sido as string,
+          sigungu: (data.sigungu as string) || null,
+        };
       }
     }
   } catch {
