@@ -3,19 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import ConsultationForm from "@/components/seo/ConsultationForm";
+import GuideRegionPhrases from "@/components/seo/GuideRegionPhrases";
+import GuideRelatedChips from "@/components/seo/GuideRelatedChips";
 import JsonLd from "@/components/seo/JsonLd";
 import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { resolveCategoryForm } from "@/lib/consultation/forms";
 import { getCategory } from "@/lib/seo-pages/categories";
-import { resolveRegionDetail } from "@/lib/seo-pages/generate";
+import { ensureNaverDescription, resolveRegionDetail } from "@/lib/seo-pages/generate";
 import { getCategoryForms } from "@/lib/seo-pages/settings";
-import { getSeoPageBySlug } from "@/lib/seo-pages/store";
+import { getSeoPageBySlug, listSeoPageSlugs } from "@/lib/seo-pages/store";
 import { buildGuideHashtags } from "@/lib/seo/region-keywords";
 import type { SeoPage } from "@/lib/seo-pages/types";
 import { SITE } from "@/lib/site";
 
-export const dynamic = "force-dynamic";
+/** 1시간 ISR — DB는 유지하되 HTML은 정적에 가깝게 캐시. 생성/삭제 시 revalidatePath로 즉시 갱신 */
+export const revalidate = 3600;
 
 const DEFAULT_STEMS = ["동물병원", "애견카페", "강아지분양", "유기동물보호센터", "애견호텔"];
 const DEFAULT_GENERIC = ["반려동물정보", "강아지정보", "반려견"];
@@ -23,6 +26,16 @@ const LOGO_URL = `${SITE.url.replace(/\/$/, "")}/logo.png`;
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+/** 최근 가이드 일부를 빌드/워밍에 포함 (나머지는 첫 방문 시 on-demand ISR) */
+export async function generateStaticParams() {
+  try {
+    const rows = await listSeoPageSlugs(0, 49);
+    return rows.map((r) => ({ slug: r.slug }));
+  } catch {
+    return [];
+  }
 }
 
 /** 메타 keywords용 (페이지에 해시태그 UI는 노출하지 않음) */
@@ -43,7 +56,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) return { title: "페이지를 찾을 수 없습니다" };
 
   const canonical = `/guide/${encodeURIComponent(page.slug)}`;
-  const description = page.description || `${page.keyword} 관련 정보 안내 — ${SITE.name}`;
+  const description = ensureNaverDescription(
+    page.description || `${page.keyword} 관련 정보 안내 — ${SITE.name}`,
+    page.keyword
+  );
   const hasImage = Boolean(page.image_url);
   const ogUrl = page.image_url || LOGO_URL;
   const ogImages = [{ url: ogUrl, alt: page.title }];
@@ -85,7 +101,10 @@ export default async function GuidePage({ params }: Props) {
   const page = await getSeoPageBySlug(decodeURIComponent(slug));
   if (!page) notFound();
 
-  const description = page.description || `${page.keyword} 관련 정보 안내`;
+  const description = ensureNaverDescription(
+    page.description || `${page.keyword} 관련 정보 안내`,
+    page.keyword
+  );
 
   const dbForms = await getCategoryForms();
   const form = resolveCategoryForm(page.category, dbForms);
@@ -157,6 +176,23 @@ export default async function GuidePage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: page.content }}
         />
       </article>
+
+      {/* aga식: 동종 내부링크 칩바 (본문 직후) */}
+      <GuideRelatedChips
+        category={page.category}
+        currentSlug={page.slug}
+        keyword={page.keyword}
+        categoryLabel={getCategory(page.category)?.label}
+      />
+
+      {/* 유아독존식: 지역 연관 검색어 (문서 있을 때만 링크) */}
+      <GuideRegionPhrases
+        category={page.category}
+        currentSlug={page.slug}
+        keyword={page.keyword}
+        sido={sido}
+        sigungu={sigungu}
+      />
 
       {page.faqs.length > 0 && (
         <section className="mt-8 rounded-2xl border border-border bg-card p-6 sm:p-8">

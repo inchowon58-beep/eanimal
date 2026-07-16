@@ -8,17 +8,36 @@ interface Props {
   categoryLabel?: string;
 }
 
-/** 같은 카테고리에서 생성된 글을 랜덤 30개 가로 스크롤로 노출 (키워드 링크) */
-export default async function RelatedGuides({ category, currentSlug, keyword, categoryLabel }: Props) {
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  const a = [...arr];
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = (h << 5) - h + seed.charCodeAt(i);
+    h |= 0;
+  }
+  h = Math.abs(h) || 1;
+  const rand = () => {
+    h = (h * 1103515245 + 12345) & 0x7fffffff;
+    return h / 0x7fffffff;
+  };
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/** 같은 카테고리에서 생성된 글을 시드 고정으로 노출 (키워드 카드) */
+export default async function RelatedGuides({
+  category,
+  currentSlug,
+  keyword,
+  categoryLabel,
+}: Props) {
   const pool = await listCategoryGuidePool(category, currentSlug, 300);
   if (pool.length === 0) return null;
 
-  const shuffled = [...pool];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  const items = shuffled.slice(0, 30);
+  const items = seededShuffle(pool, `${currentSlug}-cards`).slice(0, 30);
 
   return (
     <section className="mt-8 rounded-xl border border-border bg-card p-5 sm:p-8">
@@ -26,7 +45,8 @@ export default async function RelatedGuides({ category, currentSlug, keyword, ca
         {keyword} 관련 다른지역 정보
       </h2>
       <p className="mt-1 text-xs text-muted-fg">
-        다른 지역의 {categoryLabel ? `${categoryLabel} ` : ""}관련 정보도 함께 확인해 보세요.
+        다른 지역의 {categoryLabel ? `${categoryLabel} ` : ""}관련 정보도 함께
+        확인해 보세요.
       </p>
 
       <div className="scroll-row mt-5 flex gap-3 overflow-x-auto pb-3">
@@ -41,13 +61,13 @@ export default async function RelatedGuides({ category, currentSlug, keyword, ca
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={it.image_url}
-                  alt=""
+                  alt={it.keyword}
                   loading="lazy"
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />
               ) : (
-                <div className="flex h-full w-full items-center justify-center text-2xl text-muted-fg/40">
-                  🐾
+                <div className="flex h-full w-full items-center justify-center text-xs text-muted-fg/50">
+                  {categoryLabel || "안내"}
                 </div>
               )}
             </div>

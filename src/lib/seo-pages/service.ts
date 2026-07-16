@@ -1,7 +1,9 @@
 import {
   buildSlug,
   ensureKeywordInContent,
-  ensureKeywordInTitle,
+  ensureKeywordsInContent,
+  ensureNaverDescription,
+  ensureRelatedKeywordInTitle,
   generateSeoContent,
   normalizeKeyword,
   resolveRegionDetail,
@@ -23,6 +25,7 @@ import {
   slugExists,
 } from "@/lib/seo-pages/store";
 import type { SeoPage } from "@/lib/seo-pages/types";
+import { buildGuideHashtags } from "@/lib/seo/region-keywords";
 
 export class SeoCreateError extends Error {
   constructor(
@@ -69,7 +72,7 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return a.slice(0, n);
 }
 
-/** 카테고리 풀에서 키워드와 겹치지 않는 연관 키워드 랜덤 3개 */
+/** 카테고리 풀에서 키워드와 겹치지 않는 연관 키워드 랜덤 3개 (제목 1개 + 본문 3개용) */
 async function pickRelatedKeywords(
   categoryId: string | null,
   keyword: string
@@ -125,9 +128,25 @@ export async function createSeoPageFromKeyword(
   const detail = await resolveRegionDetail(keyword);
   const imagePool = await loadCategoryImagePool(category);
 
+  const catDef = getCategory(category);
+  const regionalHints = catDef
+    ? buildGuideHashtags({
+        sido: detail.sido,
+        sigungu: detail.sigungu,
+        stems: catDef.hashtagStems,
+        genericTags: [],
+        seed: keyword,
+        min: 2,
+        max: 4,
+      }).filter((h) => h.replace(/\s+/g, "") !== keyword.replace(/\s+/g, ""))
+    : [];
+
   let generated;
   try {
-    generated = await generateSeoContent(keyword, { relatedKeywords: related });
+    generated = await generateSeoContent(keyword, {
+      relatedKeywords: related,
+      regionalHints,
+    });
   } catch (e) {
     throw new SeoCreateError(
       e instanceof Error ? e.message : "콘텐츠 생성에 실패했습니다.",
@@ -137,9 +156,21 @@ export async function createSeoPageFromKeyword(
 
   const slug = await uniqueSlug(keyword, generated.slug);
   const regionName = detail.sido ?? generated.region;
-  // 전달 키워드가 제목·본문에 1회 이상 들어가도록만 보정 (과다 반복·제목 꼬리 키워드 금지)
-  const title = ensureKeywordInTitle(generated.title || keyword, keyword);
-  const safeContent = ensureKeywordInContent(generated.content, keyword);
+  // 제목: 메인 키워드 + 연관검색어 1개 / 본문: 메인 키워드 + 연관검색어 3개
+  const titleRelated = related[0] || null;
+  const title = ensureRelatedKeywordInTitle(
+    generated.title || keyword,
+    keyword,
+    titleRelated
+  );
+  const description = ensureNaverDescription(
+    generated.description || "",
+    keyword
+  );
+  const safeContent = ensureKeywordsInContent(
+    ensureKeywordInContent(generated.content, keyword),
+    related
+  );
   const injected = injectImages(safeContent, imagePool, keyword);
   const content = injected.html;
   const imageUrl = injected.ogImage;
@@ -151,7 +182,7 @@ export async function createSeoPageFromKeyword(
     region_name: regionName,
     region_sigungu: detail.sigungu,
     title,
-    description: generated.description,
+    description,
     content,
     faqs: generated.faqs,
     keywords: related,
@@ -166,7 +197,8 @@ export async function createSeoPageFromKeyword(
 
   try {
     const { revalidatePath } = await import("next/cache");
-    revalidatePath(`/guide/${slug}`);
+    // ISR 캐시 즉시 갱신 — 생성 직후 봇/사용자가 최신 HTML을 받게
+    revalidatePath(`/guide/${slug}`, "page");
     revalidatePath("/sitemap.xml");
   } catch {
     /* not in request context */
@@ -204,7 +236,7 @@ export async function createSeoPageFromKeyword(
     region_name: regionName,
     region_sigungu: detail.sigungu,
     title,
-    description: generated.description,
+    description,
     content,
     faqs: generated.faqs,
     keywords: related,

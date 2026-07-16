@@ -45,7 +45,18 @@ export async function DELETE(req: Request) {
   if (!id) {
     return NextResponse.json({ ok: false, error: "id가 필요합니다." }, { status: 400 });
   }
-  const { error } = await deleteSeoPage(id);
+  const { error, slug } = await deleteSeoPage(id);
   if (error) return NextResponse.json({ ok: false, error }, { status: 500 });
+
+  if (slug) {
+    try {
+      const { revalidatePath } = await import("next/cache");
+      revalidatePath(`/guide/${slug}`, "page");
+      revalidatePath("/sitemap.xml");
+    } catch {
+      /* ignore */
+    }
+  }
+
   return NextResponse.json({ ok: true });
 }

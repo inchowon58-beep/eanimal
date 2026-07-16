@@ -599,8 +599,7 @@ export default function SeoPageManager() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-foreground">
               연관 키워드{" "}
-              <span className="text-xs font-normal text-muted-fg">
-                (쉼표로 구분 · 생성 시 랜덤 3개를 본문·검색 노출에 활용)
+                (쉼표로 구분 · 생성 시 랜덤 3개: 제목 1개 · 본문 3개 · 지역 롱테일 힌트)
               </span>
             </p>
             <button
@@ -620,8 +619,9 @@ export default function SeoPageManager() {
             className="mt-3 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
           />
           <p className="mt-2 text-xs text-muted-fg">
-            이 카테고리로 생성되는 페이지는 위 키워드 중 랜덤 3개를 본문에 자연스럽게 녹이고,
-            지역명과 결합한 해시태그(3~5개)도 자동으로 함께 노출됩니다.
+            생성 시: 연관 3개 중 1개는 제목, 3개 모두 본문 · 지역이 있으면 롱테일 힌트 1~2개 ·
+            메타설명 네이버 스니펫(약 140자) · 페이지에는 동종 칩바·지역 연관어·내부링크가
+            붙습니다.
           </p>
 
           {/* 이미지 설정 */}

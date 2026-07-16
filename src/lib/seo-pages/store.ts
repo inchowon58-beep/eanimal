@@ -96,11 +96,23 @@ export async function insertSeoPage(
   return { id: (data?.id as string) ?? null, error: error?.message ?? null };
 }
 
-export async function deleteSeoPage(id: string): Promise<{ error: string | null }> {
+export async function deleteSeoPage(
+  id: string
+): Promise<{ error: string | null; slug: string | null }> {
   const supabase = getSupabaseService();
-  if (!supabase) return { error: "service role 키가 필요합니다." };
+  if (!supabase) return { error: "service role 키가 필요합니다.", slug: null };
+
+  const { data: row } = await supabase
+    .from("seo_pages")
+    .select("slug")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabase.from("seo_pages").delete().eq("id", id);
-  return { error: error?.message ?? null };
+  return {
+    error: error?.message ?? null,
+    slug: (row?.slug as string | undefined) ?? null,
+  };
 }
 
 export async function countSeoPages(): Promise<number> {

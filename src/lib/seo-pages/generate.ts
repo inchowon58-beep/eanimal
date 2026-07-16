@@ -179,6 +179,34 @@ export function ensureKeywordInTitle(title: string, keyword: string): string {
 }
 
 /**
+ * 타이틀에 메인 키워드 + 연관검색어 1개가 들어가게 보정.
+ * 권장 형태: "메인키워드 · 연관검색어"
+ */
+export function ensureRelatedKeywordInTitle(
+  title: string,
+  keyword: string,
+  relatedInTitle: string | null | undefined
+): string {
+  const k = keyword.trim();
+  const r = (relatedInTitle || "").trim();
+  let t = (title || "").trim();
+
+  // 메인 키워드가 맨 앞에 오도록
+  if (k) {
+    if (!compact(t).includes(compact(k))) {
+      t = t ? `${k} · ${t}` : k;
+    } else if (!compact(t).startsWith(compact(k))) {
+      t = `${k} · ${t}`;
+    }
+  }
+
+  if (r && !compact(t).includes(compact(r))) {
+    t = t ? `${t} · ${r}` : r;
+  }
+  return t.trim();
+}
+
+/**
  * 본문에 전달 키워드가 반드시 들어가게 보정.
  * 없으면 본문 맨 앞에 키워드를 포함한 문단을 1회만 삽입한다.
  * (과도한 반복 삽입은 하지 않음 — 네이버 저품질 신호 방지)
@@ -190,6 +218,46 @@ export function ensureKeywordInContent(html: string, keyword: string): string {
   if (compact(text).includes(compact(k))) return html;
   const lead = `<p>${k}에 대해 알아보시는 분들을 위해, 확인하면 좋은 점을 정리해 안내합니다.</p>\n`;
   return lead + (html || "");
+}
+
+/** 본문에 여러 키워드가 각각 1회 이상 들어가게 보정 */
+export function ensureKeywordsInContent(
+  html: string,
+  keywords: string[]
+): string {
+  const missing = keywords
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .filter((k) => !compact(stripTags(html)).includes(compact(k)));
+  if (!missing.length) return html;
+  if (missing.length === 1) return ensureKeywordInContent(html, missing[0]);
+  const lead = `<p>${missing.join(", ")} 같은 주제도 함께 살펴보시면 관련 정보를 이해하는 데 도움이 됩니다.</p>\n`;
+  return lead + (html || "");
+}
+
+/**
+ * 네이버 검색 스니펫용 메타 설명 보정.
+ * - 전달 키워드 포함
+ * - 약 130~145자 (최대 155자)
+ */
+export function ensureNaverDescription(
+  description: string,
+  keyword: string
+): string {
+  const k = keyword.trim();
+  let d = (description || "").replace(/\s+/g, " ").trim();
+  if (!d) {
+    d = `${k} 관련 정보를 ${SITE.name}에서 정리했습니다. 확인 포인트와 지역 맥락을 함께 안내합니다.`;
+  }
+  if (k && !compact(d).includes(compact(k))) {
+    d = `${k} — ${d}`;
+  }
+  if (d.length > 155) d = d.slice(0, 152).replace(/\s+\S*$/, "").trim() + "…";
+  if (d.length < 80 && k) {
+    d = `${d} ${SITE.name}에서 ${k} 관련 안내를 확인할 수 있습니다.`.trim();
+    if (d.length > 155) d = d.slice(0, 152).replace(/\s+\S*$/, "").trim() + "…";
+  }
+  return d;
 }
 
 /**
@@ -250,8 +318,10 @@ async function callGemini(prompt: string, key: string): Promise<string | null> {
 }
 
 export interface GenerateOptions {
-  /** 본문에 자연스럽게 녹여 넣을 연관 키워드 (카테고리 풀에서 랜덤 추출) */
+  /** 본문에 자연스럽게 녹여 넣을 연관 키워드 3개 (카테고리 풀에서 랜덤) */
   relatedKeywords?: string[];
+  /** 지역 결합 롱테일 힌트 — 본문에 1~2개만 */
+  regionalHints?: string[];
 }
 
 export async function generateSeoContent(
@@ -264,23 +334,51 @@ export async function generateSeoContent(
     .map((k) => k.trim())
     .filter(Boolean)
     .slice(0, 3);
+  const regionalHints = (options.regionalHints || [])
+    .map((k) => k.trim())
+    .filter(Boolean)
+    .filter((k) => compact(k) !== compact(keyword))
+    .slice(0, 3);
+  /** 제목에 넣을 연관검색어 1개 (풀에서 이미 랜덤 추출된 목록의 첫 항목) */
+  const titleRelated = related[0] || null;
   const key = process.env.GEMINI_API_KEY?.trim() || "";
 
   if (key) {
     const angle = ANGLES[hash(keyword) % ANGLES.length];
+    const titleHint = titleRelated
+      ? `${keyword} · ${titleRelated}`
+      : `${keyword} · 짧은 부제`;
     const prompt = `당신은 반려동물 생활 정보 전문 에디터입니다. "${SITE.name}" 사이트에 올릴, 독자에게 도움이 되는 한국어 정보성 안내 문서를 HTML로 작성하세요.
+네이버·구글 검색 사용자에게 실질적으로 도움이 되는 "단일 주제 안내 문서"로 작성하세요.
 
 키워드: "${keyword}"
 ${region ? `지역 맥락: ${region}` : ""}
-${related.length ? `함께 다룰 연관 키워드: ${related.join(", ")}` : ""}
+${related.length ? `연관 키워드 3개: ${related.join(", ")}` : ""}
+${titleRelated ? `제목에 넣을 연관 키워드(1개): "${titleRelated}"` : ""}
+${regionalHints.length ? `지역 롱테일 힌트(본문에 1~2개만 자연스럽게): ${regionalHints.join(", ")}` : ""}
 작성 관점: ${angle}
 고유 시드: ${keyword}-${hash(keyword)}-${Date.now()}
 
 작성 조건:
-- title은 반드시 전달 키워드 "${keyword}" 문자열을 그대로 포함할 것 (띄어쓰기·동의어로 바꾸지 말 것). 권장 형식: "${keyword} · 짧은 부제"
-- title에는 연관 키워드를 나열하지 말 것 (부제는 짧게)
-- 키워드 "${keyword}"를 본문에 자연스럽게 2~3회 정도 포함 (억지로 반복하지 말 것)
-${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 각각 1회 정도 자연스럽게 녹여서 포함` : ""}
+- title은 반드시 전달 키워드 "${keyword}"로 시작할 것 (띄어쓰기·동의어로 바꾸지 말 것)
+${
+  titleRelated
+    ? `- title에 연관 키워드 "${titleRelated}"도 반드시 1회 포함. 권장 형식: "${titleHint}" (연관 키워드는 제목에 이 1개만)`
+    : `- title 권장 형식: "${titleHint}"`
+}
+- 키워드 "${keyword}"를 본문에 자연스럽게 3~4회 포함 (같은 문장에 몰아넣지 말 것)
+- FAQ 질문 중 최소 2개에 "${keyword}"를 포함
+${
+  related.length
+    ? `- 연관 키워드 3개(${related.join(", ")})를 본문에 각각 1회 이상 자연스럽게 녹여 포함. 특히 제목에 쓴 "${titleRelated}"는 본문에도 반드시 등장`
+    : ""
+}
+${
+  regionalHints.length
+    ? `- 지역 롱테일 힌트는 본문에 최대 2개만 자연스럽게 언급 (나열·키워드 나열 금지)`
+    : ""
+}
+- description은 네이버 검색 스니펫용 130~145자, 맨 앞에 "${keyword}" 포함
 - 정보성/공익적 톤. 특정 업체 홍보·과장·허위·수익보장 표현 금지
 - 전화번호·주소·상호 같은 연락처 문구는 넣지 말 것
 - h2 소제목 정확히 4개, 각 섹션마다 p 문단 2개 이상. 목록이 필요하면 ul 사용
@@ -291,11 +389,11 @@ ${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 �
 
 JSON만 응답:
 {
-  "title": "${keyword} · 짧은 부제",
-  "description": "150자 이내 메타 설명 (키워드 포함)",
+  "title": "${titleHint}",
+  "description": "130~145자 메타 설명 (${keyword}로 시작)",
   "slug": "english-lowercase-slug",
   "content": "HTML 본문",
-  "faqs": [{"question":"질문1","answer":"답변1"},{"question":"질문2","answer":"답변2"}]
+  "faqs": [{"question":"질문1","answer":"답변1"},{"question":"질문2","answer":"답변2"},{"question":"질문3","answer":"답변3"}]
 }`;
 
     const text = await callGemini(prompt, key);
@@ -310,20 +408,25 @@ JSON만 응답:
             slug?: string;
             faqs?: SeoFaq[];
           };
-          const content = ensureKeywordInContent(
+          let content = ensureKeywordInContent(
             sanitizeContentHtml(parsed.content || ""),
             keyword
           );
+          content = ensureKeywordsInContent(content, related);
           if (content && stripTags(content).length >= MIN_BODY_CHARS) {
             const faqs = (parsed.faqs || [])
               .filter((f) => f?.question?.trim() && f?.answer?.trim())
               .slice(0, 3);
             return {
-              title: ensureKeywordInTitle(
+              title: ensureRelatedKeywordInTitle(
                 (parsed.title || keyword).trim(),
+                keyword,
+                titleRelated
+              ),
+              description: ensureNaverDescription(
+                parsed.description || "",
                 keyword
               ),
-              description: (parsed.description || "").trim().slice(0, 200),
               content,
               faqs: faqs.length ? faqs : buildFallbackFaqs(keyword, region),
               slug: parsed.slug,
@@ -373,8 +476,12 @@ function buildFallbackContent(
   related: string[] = []
 ): GeneratedContent {
   const area = region || "전국";
+  const titleRelated = related[0] || null;
   const relatedLine = related.length
     ? `<p>${keyword}를 찾는 분들은 ${related.join(", ")} 같은 주제도 함께 살펴보는 경우가 많습니다. 서로 연결된 정보를 폭넓게 확인하면 더 나은 판단에 도움이 됩니다.</p>`
+    : "";
+  const titleRelatedLine = titleRelated
+    ? `<p>${titleRelated}에 관심이 있다면, ${keyword}와 함께 관련 정보를 비교해 보시면 선택에 도움이 됩니다.</p>`
     : "";
   const content = sanitizeContentHtml(
     `
@@ -382,6 +489,7 @@ function buildFallbackContent(
 <p>${keyword}에 대해 처음 알아보는 분들은 정보가 흩어져 있어 혼란을 겪는 경우가 많습니다. ${SITE.name}은 ${area} 지역을 포함해 공개된 공공데이터와 검증 가능한 자료를 바탕으로, 실제 도움이 되는 내용을 정리해 안내합니다. 단편적인 광고성 정보보다 사실 관계와 배경을 먼저 이해하는 편이 안전합니다.</p>
 <p>특히 반려문화가 빠르게 확산되면서 관련 정보의 양은 늘었지만, 신뢰할 수 있는 자료를 가려내는 일이 점점 중요해지고 있습니다. 이 문서는 ${keyword}를 이해하는 데 필요한 기본 개념과 확인 포인트를 차분히 짚어 드립니다.</p>
 ${relatedLine}
+${titleRelatedLine}
 
 <h2>${keyword} 확인 전 준비</h2>
 <p>${keyword}를 알아보기 전에는 목적과 상황을 먼저 정리하는 것이 좋습니다. 어떤 정보가 필요한지, 지역 여건은 어떤지, 우선순위는 무엇인지 정리하면 불필요한 시행착오를 줄일 수 있습니다.</p>
@@ -403,13 +511,17 @@ ${relatedLine}
 `.trim()
   );
 
+  const baseTitle = titleRelated
+    ? `${keyword} · ${titleRelated}`
+    : `${keyword} 안내 · ${SITE.name}`;
+
   return {
-    title: ensureKeywordInTitle(`${keyword} 안내 · ${SITE.name}`, keyword),
-    description: `${area} ${keyword} 관련 정보를 ${SITE.name}에서 정리했습니다. 공공데이터와 검증 정보 기반 안내.`.slice(
-      0,
-      200
+    title: ensureRelatedKeywordInTitle(baseTitle, keyword, titleRelated),
+    description: ensureNaverDescription(
+      `${area} ${keyword} 관련 정보를 ${SITE.name}에서 정리했습니다. 확인 포인트와 지역 맥락을 함께 안내합니다.`,
+      keyword
     ),
-    content,
+    content: ensureKeywordsInContent(content, related),
     faqs: buildFallbackFaqs(keyword, region),
     region,
   };
