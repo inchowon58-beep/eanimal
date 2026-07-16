@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import ConsultationForm from "@/components/seo/ConsultationForm";
 import JsonLd from "@/components/seo/JsonLd";
-import KeywordTags from "@/components/seo/KeywordTags";
 import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { resolveCategoryForm } from "@/lib/consultation/forms";
@@ -26,20 +25,16 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-/** 카테고리·지역 기반 해시태그 (제목 포함) */
-function guideTags(page: SeoPage) {
+/** 메타 keywords용 (페이지에 해시태그 UI는 노출하지 않음) */
+function guideKeywords(page: SeoPage) {
   const cat = getCategory(page.category);
-  const topic = cat?.topic ?? "반려동물";
-  const tags = buildGuideHashtags({
+  return buildGuideHashtags({
     sido: page.region_name,
     sigungu: page.region_sigungu,
     stems: cat?.hashtagStems ?? DEFAULT_STEMS,
     genericTags: cat?.genericTags ?? DEFAULT_GENERIC,
     seed: page.slug,
   });
-  const regionLabel = [page.region_name, page.region_sigungu].filter(Boolean).join(" ");
-  const title = `${regionLabel ? `${regionLabel} ` : ""}${topic} 관련 검색어`;
-  return { tags, title };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -53,7 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogUrl = page.image_url || LOGO_URL;
   const ogImages = [{ url: ogUrl, alt: page.title }];
 
-  const { tags } = guideTags(page);
+  const tags = guideKeywords(page);
   const keywords = Array.from(
     new Set([page.keyword, ...(page.keywords || []), ...tags])
   );
@@ -91,7 +86,6 @@ export default async function GuidePage({ params }: Props) {
   if (!page) notFound();
 
   const description = page.description || `${page.keyword} 관련 정보 안내`;
-  const { tags, title: tagsTitle } = guideTags(page);
 
   const dbForms = await getCategoryForms();
   const form = resolveCategoryForm(page.category, dbForms);
@@ -146,18 +140,11 @@ export default async function GuidePage({ params }: Props) {
     <div className="mx-auto max-w-6xl px-4 py-8 pb-28 sm:px-6 sm:py-10 sm:pb-28">
       <JsonLd data={jsonLd} />
       <MarketingBanner placement="main_top" />
-      <ConsultationForm
-        category={page.category}
-        categoryLabel={getCategory(page.category)?.label}
-        keyword={page.keyword}
-        slug={page.slug}
-        intro={form.intro}
-        fields={form.fields}
-      />
       <Link href="/" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← {SITE.name}
       </Link>
 
+      {/* H1·본문을 상단에 — 검색·크롤 우선 */}
       <article className="mt-4 rounded-2xl border border-border bg-card p-6 sm:p-9">
         <h1 className="font-display text-2xl font-bold leading-snug text-foreground sm:text-3xl">
           {page.title}
@@ -185,7 +172,14 @@ export default async function GuidePage({ params }: Props) {
         </section>
       )}
 
-      {tags.length > 0 && <KeywordTags title={tagsTitle} tags={tags} />}
+      <ConsultationForm
+        category={page.category}
+        categoryLabel={getCategory(page.category)?.label}
+        keyword={page.keyword}
+        slug={page.slug}
+        intro={form.intro}
+        fields={form.fields}
+      />
 
       <RegionalRelated sido={sido} sigungu={sigungu} />
 

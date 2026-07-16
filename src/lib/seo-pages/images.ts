@@ -238,41 +238,57 @@ export async function listFolderImages(folder: string | null | undefined): Promi
 
 type Layout = "single" | "left" | "right" | "row2" | "row3" | "hero3" | "hero4";
 
-function imgTag(url: string): string {
-  const safe = url.replace(/"/g, "&quot;");
-  return `<img src="${safe}" alt="" loading="lazy" />`;
+function escapeAttr(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .slice(0, 120);
 }
 
-function groupHtml(layout: Layout, imgs: string[]): string {
+function imgTag(url: string, alt: string): string {
+  const safe = url.replace(/"/g, "&quot;");
+  return `<img src="${safe}" alt="${escapeAttr(alt)}" loading="lazy" />`;
+}
+
+function groupHtml(layout: Layout, imgs: string[], alt: string): string {
   switch (layout) {
     case "single":
-      return `<figure class="seo-fig">${imgTag(imgs[0])}</figure>`;
+      return `<figure class="seo-fig">${imgTag(imgs[0], alt)}</figure>`;
     case "row2":
       return `<div class="seo-grid cols-2">${imgs
-        .map((u) => `<figure>${imgTag(u)}</figure>`)
+        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
         .join("")}</div>`;
     case "row3":
       return `<div class="seo-grid cols-3">${imgs
-        .map((u) => `<figure>${imgTag(u)}</figure>`)
+        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
         .join("")}</div>`;
     case "hero3":
     case "hero4": {
       const [big, ...rest] = imgs;
       const n = rest.length === 3 ? "n3" : "n2";
       return `<div class="seo-hero"><figure class="seo-hero-big">${imgTag(
-        big
+        big,
+        alt
       )}</figure><div class="seo-hero-row ${n}">${rest
-        .map((u) => `<figure>${imgTag(u)}</figure>`)
+        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
         .join("")}</div></div>`;
     }
     default:
-      return `<figure class="seo-fig">${imgTag(imgs[0])}</figure>`;
+      return `<figure class="seo-fig">${imgTag(imgs[0], alt)}</figure>`;
   }
 }
 
-function sideHtml(url: string, paragraphHtml: string, side: "left" | "right"): string {
+function sideHtml(
+  url: string,
+  paragraphHtml: string,
+  side: "left" | "right",
+  alt: string
+): string {
   return `<div class="seo-side ${side}"><figure class="seo-side-img">${imgTag(
-    url
+    url,
+    alt
   )}</figure><div class="seo-side-text">${paragraphHtml}</div></div>`;
 }
 
@@ -302,6 +318,7 @@ const isPara = (b: string) => /^<p\b/i.test(b);
  * - 모든 문단(<p>)에 최소 1장 이상의 이미지를 배치한다.
  * - 이미지가 문단 수보다 많으면 일부 문단은 2~4장(한 줄 2·3장, 큰 사진+작은 사진)으로 묶는다.
  * - 단독 1장은 전체폭/좌/우(글 옆 배치) 중 랜덤.
+ * - seed(키워드)를 이미지 alt에 사용한다.
  * - 반환: 삽입된 HTML과 대표(OG) 이미지 URL
  */
 export function injectImages(
@@ -311,6 +328,7 @@ export function injectImages(
 ): { html: string; ogImage: string | null } {
   if (!pool.length) return { html, ogImage: null };
 
+  const alt = (seed || "반려동물").trim().slice(0, 80) || "반려동물";
   const rng = makeRng(`${seed}-layout`);
   const shuffled = shuffle(pool, rng);
   const avail = shuffled.length;
@@ -321,7 +339,7 @@ export function injectImages(
   if (P === 0) {
     const imgs = shuffled.slice(0, Math.min(3, avail));
     const layout: Layout = imgs.length >= 3 ? "row3" : imgs.length === 2 ? "row2" : "single";
-    return { html: `${groupHtml(layout, imgs)}\n${html}`, ogImage: shuffled[0] ?? null };
+    return { html: `${groupHtml(layout, imgs, alt)}\n${html}`, ogImage: shuffled[0] ?? null };
   }
 
   // 문단별 이미지 장수: 기본 1장씩(이미지 부족 시 앞 문단부터) + 남는 이미지 일부 분배
@@ -370,10 +388,10 @@ export function injectImages(
       }
       const g = groupFor(c);
       if (c === 1 && (g.layout === "left" || g.layout === "right")) {
-        out.push(sideHtml(g.imgs[0], b, g.layout));
+        out.push(sideHtml(g.imgs[0], b, g.layout, alt));
       } else {
         out.push(b);
-        out.push(groupHtml(g.layout, g.imgs));
+        out.push(groupHtml(g.layout, g.imgs, alt));
       }
       continue;
     }

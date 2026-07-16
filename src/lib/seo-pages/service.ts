@@ -2,7 +2,6 @@ import {
   buildSlug,
   ensureKeywordInContent,
   ensureKeywordInTitle,
-  ensureKeywordMentions,
   generateSeoContent,
   normalizeKeyword,
   resolveRegionDetail,
@@ -68,21 +67,6 @@ function pickRandom<T>(arr: T[], n: number): T[] {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a.slice(0, n);
-}
-
-/** 타이틀 뒤에 연관 키워드를 붙임 (이미 포함된 건 제외) */
-function composeTitleWithRelated(baseTitle: string, related: string[]): string {
-  const base = (baseTitle || "").trim();
-  const baseNorm = base.replace(/\s+/g, "");
-  const extras = related
-    .map((k) => k.trim())
-    .filter((k) => {
-      if (!k) return false;
-      const n = k.replace(/\s+/g, "");
-      return n && !baseNorm.includes(n);
-    });
-  if (!extras.length) return base;
-  return `${base} ${extras.join(" ")}`.trim();
 }
 
 /** 카테고리 풀에서 키워드와 겹치지 않는 연관 키워드 랜덤 3개 */
@@ -153,17 +137,12 @@ export async function createSeoPageFromKeyword(
 
   const slug = await uniqueSlug(keyword, generated.slug);
   const regionName = detail.sido ?? generated.region;
-  // 전달 키워드가 제목·본문에 반드시 들어가도록 최종 보정
-  const safeTitle = ensureKeywordInTitle(generated.title || keyword, keyword);
-  const safeContent = ensureKeywordMentions(
-    ensureKeywordInContent(generated.content, keyword),
-    keyword,
-    4
-  );
+  // 전달 키워드가 제목·본문에 1회 이상 들어가도록만 보정 (과다 반복·제목 꼬리 키워드 금지)
+  const title = ensureKeywordInTitle(generated.title || keyword, keyword);
+  const safeContent = ensureKeywordInContent(generated.content, keyword);
   const injected = injectImages(safeContent, imagePool, keyword);
   const content = injected.html;
   const imageUrl = injected.ogImage;
-  const title = composeTitleWithRelated(safeTitle, related);
 
   const { id, error } = await insertSeoPage({
     slug,

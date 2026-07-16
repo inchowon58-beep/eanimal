@@ -180,51 +180,28 @@ export function ensureKeywordInTitle(title: string, keyword: string): string {
 
 /**
  * 본문에 전달 키워드가 반드시 들어가게 보정.
- * 없으면 본문 맨 앞에 키워드를 포함한 문단을 삽입한다.
+ * 없으면 본문 맨 앞에 키워드를 포함한 문단을 1회만 삽입한다.
+ * (과도한 반복 삽입은 하지 않음 — 네이버 저품질 신호 방지)
  */
 export function ensureKeywordInContent(html: string, keyword: string): string {
   const k = keyword.trim();
   if (!k) return html;
   const text = stripTags(html);
   if (compact(text).includes(compact(k))) return html;
-  const lead = `<p>${k}에 대해 알아보시는 분들을 위해, ${k}와 관련해 확인하면 좋은 점을 정리해 안내합니다.</p>\n`;
+  const lead = `<p>${k}에 대해 알아보시는 분들을 위해, 확인하면 좋은 점을 정리해 안내합니다.</p>\n`;
   return lead + (html || "");
 }
 
 /**
- * 본문에 키워드가 최소 minCount회 이상 나오도록 보정.
- * (이미 충분하면 그대로, 부족하면 자연스러운 문단을 앞에 추가)
+ * @deprecated 과도한 반복 삽입을 막기 위해 ensureKeywordInContent 만 사용.
+ * 호환을 위해 남겨 두되, minCount와 무관하게 1회 보장만 한다.
  */
 export function ensureKeywordMentions(
   html: string,
   keyword: string,
-  minCount = 4
+  _minCount = 1
 ): string {
-  const k = keyword.trim();
-  if (!k) return html;
-  let out = ensureKeywordInContent(html, k);
-  const kn = compact(k);
-  const countMentions = (h: string) => {
-    const t = compact(stripTags(h));
-    if (!kn) return 0;
-    let n = 0;
-    let idx = 0;
-    while (true) {
-      const found = t.indexOf(kn, idx);
-      if (found < 0) break;
-      n++;
-      idx = found + kn.length;
-    }
-    return n;
-  };
-  let count = countMentions(out);
-  while (count < minCount) {
-    out =
-      `<p>${k} 관련 정보를 확인할 때는 공개된 자료와 지역 여건을 함께 살펴보는 것이 도움이 됩니다. ${k}에 대해 더 알고 싶다면 아래 내용을 참고해 주세요.</p>\n` +
-      out;
-    count = countMentions(out);
-  }
-  return out;
+  return ensureKeywordInContent(html, keyword);
 }
 
 const ANGLES = [
@@ -301,9 +278,9 @@ ${related.length ? `함께 다룰 연관 키워드: ${related.join(", ")}` : ""}
 
 작성 조건:
 - title은 반드시 전달 키워드 "${keyword}" 문자열을 그대로 포함할 것 (띄어쓰기·동의어로 바꾸지 말 것). 권장 형식: "${keyword} · 짧은 부제"
-- 키워드 "${keyword}"를 본문에 그대로(띄어쓰기 변경 없이) 4~6회 이상 포함
-${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 각각 1회 이상 자연스럽게 녹여서 포함` : ""}
-${related.length ? `- title 끝에도 연관 키워드를 공백으로 구분해 함께 배치` : ""}
+- title에는 연관 키워드를 나열하지 말 것 (부제는 짧게)
+- 키워드 "${keyword}"를 본문에 자연스럽게 2~3회 정도 포함 (억지로 반복하지 말 것)
+${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 각각 1회 정도 자연스럽게 녹여서 포함` : ""}
 - 정보성/공익적 톤. 특정 업체 홍보·과장·허위·수익보장 표현 금지
 - 전화번호·주소·상호 같은 연락처 문구는 넣지 말 것
 - h2 소제목 정확히 4개, 각 섹션마다 p 문단 2개 이상. 목록이 필요하면 ul 사용
@@ -314,7 +291,7 @@ ${related.length ? `- title 끝에도 연관 키워드를 공백으로 구분해
 
 JSON만 응답:
 {
-  "title": "${keyword} · 짧은 부제 (연관키워드 포함 가능)",
+  "title": "${keyword} · 짧은 부제",
   "description": "150자 이내 메타 설명 (키워드 포함)",
   "slug": "english-lowercase-slug",
   "content": "HTML 본문",
@@ -333,10 +310,9 @@ JSON만 응답:
             slug?: string;
             faqs?: SeoFaq[];
           };
-          const content = ensureKeywordMentions(
+          const content = ensureKeywordInContent(
             sanitizeContentHtml(parsed.content || ""),
-            keyword,
-            4
+            keyword
           );
           if (content && stripTags(content).length >= MIN_BODY_CHARS) {
             const faqs = (parsed.faqs || [])
