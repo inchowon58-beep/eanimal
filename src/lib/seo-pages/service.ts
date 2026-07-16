@@ -67,6 +67,21 @@ function pickRandom<T>(arr: T[], n: number): T[] {
   return a.slice(0, n);
 }
 
+/** 타이틀 뒤에 연관 키워드를 붙임 (이미 포함된 건 제외) */
+function composeTitleWithRelated(baseTitle: string, related: string[]): string {
+  const base = (baseTitle || "").trim();
+  const baseNorm = base.replace(/\s+/g, "");
+  const extras = related
+    .map((k) => k.trim())
+    .filter((k) => {
+      if (!k) return false;
+      const n = k.replace(/\s+/g, "");
+      return n && !baseNorm.includes(n);
+    });
+  if (!extras.length) return base;
+  return `${base} ${extras.join(" ")}`.trim();
+}
+
 /** 카테고리 풀에서 키워드와 겹치지 않는 연관 키워드 랜덤 3개 */
 async function pickRelatedKeywords(
   categoryId: string | null,
@@ -138,6 +153,7 @@ export async function createSeoPageFromKeyword(
   const injected = injectImages(generated.content, imagePool, keyword);
   const content = injected.html;
   const imageUrl = injected.ogImage;
+  const title = composeTitleWithRelated(generated.title || keyword, related);
 
   const { id, error } = await insertSeoPage({
     slug,
@@ -145,7 +161,7 @@ export async function createSeoPageFromKeyword(
     category,
     region_name: regionName,
     region_sigungu: detail.sigungu,
-    title: generated.title,
+    title,
     description: generated.description,
     content,
     faqs: generated.faqs,
@@ -198,7 +214,7 @@ export async function createSeoPageFromKeyword(
     category,
     region_name: regionName,
     region_sigungu: detail.sigungu,
-    title: generated.title,
+    title,
     description: generated.description,
     content,
     faqs: generated.faqs,
