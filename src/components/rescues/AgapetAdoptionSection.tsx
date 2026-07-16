@@ -40,9 +40,6 @@ export default function AgapetAdoptionSection({ pets }: { pets: AgapetPet[] }) {
             >
               <div className="relative aspect-[4/3] bg-muted">
                 <RemoteImage src={pet.imageUrl} alt={pet.name} />
-                <span className="absolute left-2 top-2 rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold text-white">
-                  입양 가능
-                </span>
               </div>
               <div className="p-3 sm:p-4">
                 <h3 className="line-clamp-1 text-sm font-semibold text-foreground sm:text-base">
