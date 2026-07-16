@@ -132,13 +132,21 @@ export default async function RescueDetailPage({ params }: Props) {
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <JsonLd data={jsonLd} />
       <MarketingBanner placement="rescue" />
-      <Link href="/rescues" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
-        ← 공고 목록
-      </Link>
 
       <AgapetMiniStrip pets={agapetPets} />
 
-      <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card lg:grid lg:grid-cols-2">
+      {agapetPets.length > 0 && (
+        <hr className="my-6 border-0 border-t border-border" />
+      )}
+
+      <Link
+        href="/rescues"
+        className="mb-4 inline-block text-sm text-muted-fg hover:text-foreground"
+      >
+        ← 유기동물보호센터 공고 목록
+      </Link>
+
+      <article className="overflow-hidden rounded-2xl border border-border bg-card lg:grid lg:grid-cols-2">
         <div className="relative aspect-[16/10] bg-muted lg:aspect-auto lg:min-h-[360px]">
           <RemoteImage
             src={animal.image_url}

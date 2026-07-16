@@ -7,7 +7,7 @@ export default function AgapetMiniStrip({ pets }: { pets: AgapetPet[] }) {
   if (!list.length) return null;
 
   return (
-    <section className="mt-4 mb-6">
+    <section className="mt-4 mb-2">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <h2 className="font-display text-lg font-bold tracking-tight text-foreground sm:text-xl">
           파양견입양공고

@@ -45,7 +45,11 @@ export default async function RescuesPage({ searchParams }: Props) {
 
       <AgapetAdoptionSection pets={agapetPets} />
 
-      <h1 className="mt-10 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+      {agapetPets.length > 0 && (
+        <hr className="my-8 border-0 border-t border-border" />
+      )}
+
+      <h1 className="font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
         {sido || "전국"} 유실·유기동물 구조 공고
       </h1>
       <p className="mt-2 text-sm text-muted-fg">
