@@ -2,9 +2,9 @@ export const SITE = {
   name: "반려문화위원회",
   shortName: "반려문화위원회",
   description:
-    "전국 동물병원·동물약국·동물장묘업 인허가 정보를 지역별로 안내하는 반려동물 인프라 정보 포털입니다.",
+    "강아지 파양·무료입양 안내와 유기동물 공고, 동물병원·약국·장묘·동반여행 정보를 한곳에서 제공하는 반려동물 생활 정보 포털입니다.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  tagline: "전국 반려동물 인프라 정보",
+  tagline: "반려문화를 위한 생활 정보 포털",
 } as const;
 
 export const PLACE_CATEGORIES = [
