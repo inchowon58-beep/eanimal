@@ -49,6 +49,23 @@ const CATEGORY_FORMS: Record<string, CategoryForm> = {
   },
 };
 
+/** 접수 폼 상단·플로팅 버튼 문구 (카테고리별) — "반려문화위원회" 접두어는 컴포넌트에서 붙임 */
+const FORM_TITLES: Record<string, string> = {
+  shelter: "강아지파양(입소) 무료입양 접수 신청",
+  adopt: "강아지분양 문의 접수 신청",
+  hospital: "동물병원 문의 접수 신청",
+  funeral: "강아지장례 문의 접수 신청",
+  cafe: "애견카페 문의 접수 신청",
+  pharmacy: "동물약국 문의 접수 신청",
+  hotel: "애견호텔·펜션 문의 접수 신청",
+  academy: "애견미용학원 문의 접수 신청",
+};
+
+export function consultFormTitle(categoryId: string | null | undefined): string {
+  if (categoryId && FORM_TITLES[categoryId]) return FORM_TITLES[categoryId];
+  return "상담 문의 접수 신청";
+}
+
 /**
  * 카테고리의 양식을 결정한다.
  * @param categoryId 카테고리 id

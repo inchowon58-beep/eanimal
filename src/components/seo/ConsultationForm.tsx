@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ConsultField } from "@/lib/consultation/forms";
+import { consultFormTitle, type ConsultField } from "@/lib/consultation/forms";
 
 interface Props {
   category: string | null | undefined;
@@ -94,6 +94,7 @@ export default function ConsultationForm({
     "mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent";
   const labelCls = "text-xs font-semibold text-foreground";
   const showNotice = category === "shelter";
+  const formTitle = consultFormTitle(category);
 
   return (
     <section id="consult-form" className="mt-5 scroll-mt-24">
@@ -104,12 +105,12 @@ export default function ConsultationForm({
             공식 · 100% 비대면 접수
           </span>
           <h2 className="mt-2 font-display text-xl font-bold sm:text-2xl">
-          반려문화위원회 강아지파양(입소) 무료입양 접수 신청
-        </h2>
-        <p className="mt-1 text-sm text-white/90">
-          {categoryLabel ? `${categoryLabel} · ` : ""}작성해 주시면 배정 상담사가 직접 연락드립니다.
-        </p>
-      </div>
+            반려문화위원회 {formTitle}
+          </h2>
+          <p className="mt-1 text-sm text-white/90">
+            {categoryLabel ? `${categoryLabel} · ` : ""}작성해 주시면 배정 상담사가 직접 연락드립니다.
+          </p>
+        </div>
 
       {/* 본문 */}
       <div className="p-6 sm:p-7">
@@ -260,7 +261,7 @@ export default function ConsultationForm({
         href="#consult-form"
         className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition hover:brightness-95"
       >
-        강아지파양(입소) 무료입양 접수 신청
+        {formTitle}
       </a>
     )}
   </section>
