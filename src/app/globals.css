@@ -193,6 +193,13 @@ body {
   .seo-hero-row.n3 {
     grid-template-columns: repeat(2, 1fr);
   }
+  /* 2열에서 마지막에 1장만 남으면 전체 폭으로 */
+  .seo-grid.cols-2 figure:last-child:nth-child(odd),
+  .seo-grid.cols-3 figure:last-child:nth-child(odd),
+  .seo-hero-row.n2 figure:last-child:nth-child(odd),
+  .seo-hero-row.n3 figure:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
   .seo-side {
     grid-template-columns: 1fr;
     gap: 14px;
