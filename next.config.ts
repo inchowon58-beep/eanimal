@@ -25,6 +25,9 @@ const nextConfig: NextConfig = {
       { protocol: "http", hostname: "cdn.visitkorea.or.kr", pathname: "/**" },
       { protocol: "https", hostname: "**.visitkorea.or.kr", pathname: "/**" },
       { protocol: "http", hostname: "**.visitkorea.or.kr", pathname: "/**" },
+      { protocol: "https", hostname: "cdn.sanity.io", pathname: "/**" },
+      { protocol: "https", hostname: "www.agapetstory.co.kr", pathname: "/**" },
+      { protocol: "https", hostname: "agapetstory.co.kr", pathname: "/**" },
     ],
   },
 };

@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import RemoteImage from "@/components/media/RemoteImage";
+import AgapetAdoptionSection from "@/components/rescues/AgapetAdoptionSection";
 import ListPagination from "@/components/ui/ListPagination";
+import { fetchAgapetAvailable } from "@/lib/agapet/fetch";
 import { listRescues } from "@/lib/rescues/queries";
 import { buildRescueListSeo } from "@/lib/rescues/seo";
 import { formatHappenDt, sexLabel } from "@/lib/rescues/types";
@@ -29,7 +31,10 @@ export default async function RescuesPage({ searchParams }: Props) {
   const sido = typeof p.sido === "string" ? p.sido : undefined;
   const q = typeof p.q === "string" ? p.q : undefined;
   const page = Math.max(1, Number(typeof p.page === "string" ? p.page : 1) || 1);
-  const result = await listRescues({ page, sido, q });
+  const [result, agapetPets] = await Promise.all([
+    listRescues({ page, sido, q }),
+    fetchAgapetAvailable(6),
+  ]);
   const totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
   const seo = buildRescueListSeo({ sido, total: result.total });
   const paragraphs = seo.split("\n\n");
@@ -43,6 +48,8 @@ export default async function RescuesPage({ searchParams }: Props) {
       <p className="mt-2 text-sm text-muted-fg">
         공고 {result.total.toLocaleString("ko-KR")}건 · 이미지 URL만 캐시(파일 미저장)
       </p>
+
+      <AgapetAdoptionSection pets={agapetPets} />
 
       <form method="get" action="/rescues" className="mt-6 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
         <label className="text-xs font-medium text-muted-fg">
