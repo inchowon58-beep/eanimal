@@ -5,6 +5,7 @@ import PlaceCard from "@/components/places/PlaceCard";
 import PortalSearch from "@/components/layout/PortalSearch";
 import QuickServices from "@/components/home/QuickServices";
 import RemoteImage from "@/components/media/RemoteImage";
+import { fetchAgapetAvailable } from "@/lib/agapet/fetch";
 import { listPlaces } from "@/lib/places/queries";
 import { listRescues } from "@/lib/rescues/queries";
 import { formatHappenDt, sexLabel } from "@/lib/rescues/types";
@@ -13,11 +14,12 @@ import { listTravel } from "@/lib/travel/queries";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [hospitals, funerals, rescues, travel] = await Promise.all([
+  const [hospitals, funerals, rescues, travel, agapetPets] = await Promise.all([
     listPlaces({ category: "동물병원", page: 1, pageSize: 6 }),
     listPlaces({ category: "동물장묘업", page: 1, pageSize: 6 }),
     listRescues({ page: 1 }),
     listTravel({ page: 1 }),
+    fetchAgapetAvailable(4),
   ]);
 
   const rescueItems = rescues.items.filter((r) => r.image_url).slice(0, 8);
@@ -42,6 +44,47 @@ export default async function HomePage() {
 
       <div className="mx-auto max-w-6xl space-y-12 px-4 py-10 sm:px-6 sm:py-12">
         <MarketingBanner placement="main_top" />
+
+        {/* 파양동물 입양공고 (아가펫) */}
+        {agapetPets.length > 0 && (
+          <PortalBlock
+            title="보호자 사정으로인한 파양동물 입양공고"
+            href="https://www.agapetstory.co.kr/pets"
+            moreLabel="공고 더보기"
+            external
+          >
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              {agapetPets.map((pet) => {
+                const meta = [pet.species, pet.age, pet.gender]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <a
+                    key={pet.id}
+                    href={pet.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="overflow-hidden rounded-xl border border-border bg-card transition hover:border-accent/40"
+                  >
+                    <div className="relative aspect-[4/3] bg-muted">
+                      <RemoteImage src={pet.imageUrl} alt={pet.name} />
+                    </div>
+                    <div className="p-3">
+                      <h3 className="line-clamp-1 text-sm font-semibold text-foreground">
+                        {pet.name}
+                      </h3>
+                      {meta && (
+                        <p className="mt-1 line-clamp-1 text-xs text-muted-fg">
+                          {meta}
+                        </p>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          </PortalBlock>
+        )}
 
         {/* 유기동물 공고 */}
         <PortalBlock
@@ -176,24 +219,36 @@ function PortalBlock({
   href,
   moreLabel,
   children,
+  external,
 }: {
   title: string;
   href: string;
   moreLabel: string;
   children: ReactNode;
+  external?: boolean;
 }) {
+  const moreClass =
+    "shrink-0 text-sm font-medium text-accent hover:underline";
   return (
     <section>
       <div className="mb-4 flex items-end justify-between gap-3">
         <h2 className="font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl">
           {title}
         </h2>
-        <Link
-          href={href}
-          className="shrink-0 text-sm font-medium text-accent hover:underline"
-        >
-          {moreLabel}
-        </Link>
+        {external ? (
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={moreClass}
+          >
+            {moreLabel}
+          </a>
+        ) : (
+          <Link href={href} className={moreClass}>
+            {moreLabel}
+          </Link>
+        )}
       </div>
       {children}
     </section>
