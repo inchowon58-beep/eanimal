@@ -13,7 +13,7 @@ interface Props {
 }
 
 const SUCCESS_MSG =
-  "접수가 완료되었습니다. 반려문화증진위원회 배정 상담사가 영업일 기준 24시간 이내에 순차적으로 연락을 드립니다.";
+  "접수가 완료되었습니다. 반려문화위원회 배정 상담사가 영업일 기준 24시간 이내에 순차적으로 연락을 드립니다.";
 
 const NOTICE_LINES = [
   "실소유자가 아닌 외부 유기견·유기묘 접수는 지자체를 통해 접수하셔야 합니다.",
@@ -247,7 +247,7 @@ export default function ConsultationForm({
               {submitting ? "접수 중..." : "신청하기"}
             </button>
             <p className="mt-2 text-center text-xs text-muted-fg">
-              제출 즉시 반려문화증진위원회에 안전하게 접수됩니다.
+              제출 즉시 반려문화위원회에 안전하게 접수됩니다.
             </p>
           </>
         )}

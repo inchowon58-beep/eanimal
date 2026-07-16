@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   }
   const r = await sendTelegramMessage(
     chatId,
-    "✅ 반려문화증진위원회 알림 테스트입니다. 이 메시지가 보이면 정상 연결된 것입니다."
+    "✅ 반려문화위원회 알림 테스트입니다. 이 메시지가 보이면 정상 연결된 것입니다."
   );
   if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 502 });
   return NextResponse.json({ ok: true });
