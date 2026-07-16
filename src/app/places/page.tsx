@@ -3,7 +3,6 @@ import MarketingBanner from "@/components/places/MarketingBanner";
 import PlaceCard from "@/components/places/PlaceCard";
 import PlacesFilterBar from "@/components/places/PlacesFilterBar";
 import PlacesPagination from "@/components/places/PlacesPagination";
-import PlacesSeoBody from "@/components/places/PlacesSeoBody";
 import { listPlaces, parsePlacesFilter } from "@/lib/places/queries";
 import { isSupabaseConfigured } from "@/lib/supabase/server";
 import { SITE } from "@/lib/site";
@@ -89,13 +88,6 @@ export default async function PlacesPage({ searchParams }: PageProps) {
           category: filter.category || undefined,
           q: filter.q,
         }}
-      />
-
-      <PlacesSeoBody
-        sido={filter.sido}
-        sigungu={filter.sigungu}
-        category={filter.category}
-        total={result.total}
       />
     </div>
   );

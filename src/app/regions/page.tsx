@@ -7,7 +7,6 @@ import {
   SIDO_LIST,
 } from "@/lib/regions";
 import { SITE } from "@/lib/site";
-import { buildPlacesListSeoCopy } from "@/lib/places/seo-copy";
 
 export const revalidate = 3600;
 
@@ -19,8 +18,6 @@ export const metadata: Metadata = {
 export default async function RegionsIndexPage() {
   const sidos = await listDistinctSido();
   const list = sidos.length ? sidos : [...SIDO_LIST];
-  const seo = buildPlacesListSeoCopy({ total: 0 });
-  const paragraphs = seo.split("\n\n").filter(Boolean);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
@@ -43,17 +40,6 @@ export default async function RegionsIndexPage() {
           </Link>
         ))}
       </div>
-
-      <section className="seo-body mt-12 rounded-xl border border-border bg-card p-5 sm:p-8">
-        <h2 className="font-display text-lg font-semibold text-foreground">
-          전국 지역 인프라 안내
-        </h2>
-        <div className="mt-4">
-          {paragraphs.map((p) => (
-            <p key={p.slice(0, 32)}>{p}</p>
-          ))}
-        </div>
-      </section>
     </div>
   );
 }

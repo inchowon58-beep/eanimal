@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import PlaceCard from "@/components/places/PlaceCard";
-import PlacesSeoBody from "@/components/places/PlacesSeoBody";
 import { listPlaces } from "@/lib/places/queries";
 import {
   listSigunguForSido,
@@ -101,8 +100,6 @@ export default async function RegionSidoPage({ params }: PageProps) {
           </div>
         </section>
       )}
-
-      <PlacesSeoBody sido={sido} total={result.total} />
     </div>
   );
 }
