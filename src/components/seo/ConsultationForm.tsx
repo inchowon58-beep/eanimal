@@ -104,166 +104,166 @@ export default function ConsultationForm({
             공식 · 100% 비대면 접수
           </span>
           <h2 className="mt-2 font-display text-xl font-bold sm:text-2xl">
-            반려문화증진위원회 공식 안심 보호 접수 신청
-          </h2>
-          <p className="mt-1 text-sm text-white/90">
-            {categoryLabel ? `${categoryLabel} · ` : ""}작성해 주시면 배정 상담사가 직접 연락드립니다.
-          </p>
-        </div>
+          반려문화위원회 강아지파양(입소) 무료입양 접수 신청
+        </h2>
+        <p className="mt-1 text-sm text-white/90">
+          {categoryLabel ? `${categoryLabel} · ` : ""}작성해 주시면 배정 상담사가 직접 연락드립니다.
+        </p>
+      </div>
 
-        {/* 본문 */}
-        <div className="p-6 sm:p-7">
-          {done ? (
-            <div className="py-6 text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/15 text-3xl text-accent">
-                ✓
-              </div>
-              <h3 className="mt-4 text-lg font-bold text-foreground">접수 완료</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-fg">{SUCCESS_MSG}</p>
-              {showNotice && (
-                <ul className="mx-auto mt-4 max-w-md space-y-1.5 rounded-xl bg-muted/30 p-4 text-left text-xs leading-relaxed text-muted-fg">
+      {/* 본문 */}
+      <div className="p-6 sm:p-7">
+        {done ? (
+          <div className="py-6 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-accent/15 text-3xl text-accent">
+              ✓
+            </div>
+            <h3 className="mt-4 text-lg font-bold text-foreground">접수 완료</h3>
+            <p className="mt-2 text-sm leading-relaxed text-muted-fg">{SUCCESS_MSG}</p>
+            {showNotice && (
+              <ul className="mx-auto mt-4 max-w-md space-y-1.5 rounded-xl bg-muted/30 p-4 text-left text-xs leading-relaxed text-muted-fg">
+                {NOTICE_LINES.map((line, i) => (
+                  <li key={i} className="flex gap-1.5">
+                    <span className="text-accent">·</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <>
+            {intro && (
+              <p className="mb-4 rounded-xl bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
+                {intro}
+              </p>
+            )}
+
+            {showNotice && (
+              <div className="mb-5 rounded-xl border border-amber-300/60 bg-amber-50 p-4">
+                <p className="text-xs font-bold text-amber-800">접수 전 꼭 확인해 주세요</p>
+                <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-amber-800/90">
                   {NOTICE_LINES.map((line, i) => (
                     <li key={i} className="flex gap-1.5">
-                      <span className="text-accent">·</span>
+                      <span>·</span>
                       <span>{line}</span>
                     </li>
                   ))}
                 </ul>
-              )}
-            </div>
-          ) : (
-            <>
-              {intro && (
-                <p className="mb-4 rounded-xl bg-accent/5 px-4 py-3 text-sm leading-relaxed text-foreground">
-                  {intro}
-                </p>
-              )}
-
-              {showNotice && (
-                <div className="mb-5 rounded-xl border border-amber-300/60 bg-amber-50 p-4">
-                  <p className="text-xs font-bold text-amber-800">접수 전 꼭 확인해 주세요</p>
-                  <ul className="mt-2 space-y-1.5 text-xs leading-relaxed text-amber-800/90">
-                    {NOTICE_LINES.map((line, i) => (
-                      <li key={i} className="flex gap-1.5">
-                        <span>·</span>
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                {/* 고정 항목: 이름/연락처 */}
-                <div>
-                  <label className={labelCls}>
-                    이름 <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="성함을 입력하세요"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label className={labelCls}>
-                    연락처 <span className="text-accent">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="010-0000-0000"
-                    className={inputCls}
-                  />
-                </div>
-
-                {/* 동적 항목 */}
-                {fields.map((fld) => (
-                  <div key={fld.id} className={fld.multiline ? "sm:col-span-2" : ""}>
-                    <label className={labelCls}>
-                      {fld.label}
-                      {fld.required && <span className="text-accent"> *</span>}
-                    </label>
-                    {fld.multiline ? (
-                      <textarea
-                        rows={3}
-                        value={answers[fld.id] || ""}
-                        onChange={(e) => setAnswer(fld.id, e.target.value)}
-                        placeholder={`${fld.label}을(를) 입력하세요`}
-                        className={`${inputCls} resize-y`}
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={answers[fld.id] || ""}
-                        onChange={(e) => setAnswer(fld.id, e.target.value)}
-                        placeholder={`${fld.label} 입력`}
-                        className={inputCls}
-                      />
-                    )}
-                  </div>
-                ))}
               </div>
+            )}
 
-              {/* 개인정보 동의 */}
-              <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
-                <p className="text-xs leading-relaxed text-muted-fg">{PRIVACY_SUMMARY}</p>
-                <button
-                  type="button"
-                  onClick={() => setPolicyOpen((o) => !o)}
-                  className="mt-2 text-xs font-semibold text-accent hover:underline"
-                >
-                  {policyOpen ? "개인정보 처리방침 접기" : "개인정보 수집·이용 전문 보기"}
-                </button>
-                {policyOpen && (
-                  <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-border bg-background p-3 text-[11px] leading-relaxed text-muted-fg">
-                    <PolicyText />
-                  </div>
-                )}
-                <label className="mt-3 flex cursor-pointer items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={agreed}
-                    onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
-                  />
-                  <span className="text-sm font-medium text-foreground">
-                    위 개인정보 수집 및 이용에 동의합니다. <span className="text-accent">(필수)</span>
-                  </span>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {/* 고정 항목: 이름/연락처 */}
+              <div>
+                <label className={labelCls}>
+                  이름 <span className="text-accent">*</span>
                 </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="성함을 입력하세요"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>
+                  연락처 <span className="text-accent">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="010-0000-0000"
+                  className={inputCls}
+                />
               </div>
 
-              {error && <p className="mt-3 text-sm font-medium text-danger">{error}</p>}
+              {/* 동적 항목 */}
+              {fields.map((fld) => (
+                <div key={fld.id} className={fld.multiline ? "sm:col-span-2" : ""}>
+                  <label className={labelCls}>
+                    {fld.label}
+                    {fld.required && <span className="text-accent"> *</span>}
+                  </label>
+                  {fld.multiline ? (
+                    <textarea
+                      rows={3}
+                      value={answers[fld.id] || ""}
+                      onChange={(e) => setAnswer(fld.id, e.target.value)}
+                      placeholder={`${fld.label}을(를) 입력하세요`}
+                      className={`${inputCls} resize-y`}
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={answers[fld.id] || ""}
+                      onChange={(e) => setAnswer(fld.id, e.target.value)}
+                      placeholder={`${fld.label} 입력`}
+                      className={inputCls}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
 
+            {/* 개인정보 동의 */}
+            <div className="mt-5 rounded-xl border border-border bg-muted/20 p-4">
+              <p className="text-xs leading-relaxed text-muted-fg">{PRIVACY_SUMMARY}</p>
               <button
                 type="button"
-                onClick={submit}
-                disabled={!canSubmit || submitting}
-                className="mt-5 w-full rounded-xl bg-accent px-6 py-3.5 text-base font-bold text-white shadow-md shadow-accent/25 transition enabled:hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => setPolicyOpen((o) => !o)}
+                className="mt-2 text-xs font-semibold text-accent hover:underline"
               >
-                {submitting ? "접수 중..." : "신청하기"}
+                {policyOpen ? "개인정보 처리방침 접기" : "개인정보 수집·이용 전문 보기"}
               </button>
-              <p className="mt-2 text-center text-xs text-muted-fg">
-                제출 즉시 반려문화증진위원회에 안전하게 접수됩니다.
-              </p>
-            </>
-          )}
-        </div>
-      </div>
+              {policyOpen && (
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-lg border border-border bg-background p-3 text-[11px] leading-relaxed text-muted-fg">
+                  <PolicyText />
+                </div>
+              )}
+              <label className="mt-3 flex cursor-pointer items-start gap-2">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 accent-[var(--accent)]"
+                />
+                <span className="text-sm font-medium text-foreground">
+                  위 개인정보 수집 및 이용에 동의합니다. <span className="text-accent">(필수)</span>
+                </span>
+              </label>
+            </div>
 
-      {/* 하단 고정 버튼 → 폼으로 스크롤 */}
-      {!done && (
-        <a
-          href="#consult-form"
-          className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition hover:brightness-95"
-        >
-          공식 안심 보호 접수 신청
-        </a>
-      )}
-    </section>
+            {error && <p className="mt-3 text-sm font-medium text-danger">{error}</p>}
+
+            <button
+              type="button"
+              onClick={submit}
+              disabled={!canSubmit || submitting}
+              className="mt-5 w-full rounded-xl bg-accent px-6 py-3.5 text-base font-bold text-white shadow-md shadow-accent/25 transition enabled:hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submitting ? "접수 중..." : "신청하기"}
+            </button>
+            <p className="mt-2 text-center text-xs text-muted-fg">
+              제출 즉시 반려문화증진위원회에 안전하게 접수됩니다.
+            </p>
+          </>
+        )}
+      </div>
+    </div>
+
+    {/* 하단 고정 버튼 → 폼으로 스크롤 */}
+    {!done && (
+      <a
+        href="#consult-form"
+        className="fixed bottom-5 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-accent/30 transition hover:brightness-95"
+      >
+        강아지파양(입소) 무료입양 접수 신청
+      </a>
+    )}
+  </section>
   );
 }
 
