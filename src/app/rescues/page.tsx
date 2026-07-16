@@ -42,14 +42,15 @@ export default async function RescuesPage({ searchParams }: Props) {
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <MarketingBanner placement="rescue" />
-      <h1 className="mt-6 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+
+      <AgapetAdoptionSection pets={agapetPets} />
+
+      <h1 className="mt-10 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
         {sido || "전국"} 유실·유기동물 구조 공고
       </h1>
       <p className="mt-2 text-sm text-muted-fg">
         공고 {result.total.toLocaleString("ko-KR")}건 · 이미지 URL만 캐시(파일 미저장)
       </p>
-
-      <AgapetAdoptionSection pets={agapetPets} />
 
       <form method="get" action="/rescues" className="mt-6 grid gap-3 rounded-xl border border-border bg-card p-4 sm:grid-cols-3">
         <label className="text-xs font-medium text-muted-fg">
