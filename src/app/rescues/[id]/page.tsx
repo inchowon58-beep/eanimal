@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import RemoteImage from "@/components/media/RemoteImage";
+import AgapetMiniStrip from "@/components/rescues/AgapetMiniStrip";
 import JsonLd from "@/components/seo/JsonLd";
 import KeywordTags from "@/components/seo/KeywordTags";
 import RegionalRelated from "@/components/seo/RegionalRelated";
+import { fetchAgapetAvailable } from "@/lib/agapet/fetch";
 import { getRescueByDesertionNo } from "@/lib/rescues/queries";
 import { buildRescueDetailSeo } from "@/lib/rescues/seo";
 import { buildRescueHashtags } from "@/lib/seo/region-keywords";
@@ -77,7 +79,10 @@ export default async function RescueDetailPage({ params }: Props) {
   const animal = await getRescueByDesertionNo(decodeURIComponent(id));
   if (!animal) notFound();
 
-  const seo = buildRescueDetailSeo(animal);
+  const [seo, agapetPets] = await Promise.all([
+    Promise.resolve(buildRescueDetailSeo(animal)),
+    fetchAgapetAvailable(3),
+  ]);
   const paragraphs = seo.split("\n\n");
   const region = [animal.sido, animal.sigungu].filter(Boolean).join(" ") || "전국";
   const kind = animal.kind_cd || "구조동물";
@@ -130,6 +135,8 @@ export default async function RescueDetailPage({ params }: Props) {
       <Link href="/rescues" className="mt-4 inline-block text-sm text-muted-fg hover:text-foreground">
         ← 공고 목록
       </Link>
+
+      <AgapetMiniStrip pets={agapetPets} />
 
       <article className="mt-4 overflow-hidden rounded-2xl border border-border bg-card lg:grid lg:grid-cols-2">
         <div className="relative aspect-[16/10] bg-muted lg:aspect-auto lg:min-h-[360px]">

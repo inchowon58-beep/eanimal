@@ -22,7 +22,7 @@ export default function AgapetAdoptionSection({ pets }: { pets: AgapetPet[] }) {
           rel="noopener noreferrer"
           className="shrink-0 text-xs font-semibold text-accent hover:underline"
         >
-          전체아이들보기 →
+          공고더보기 →
         </a>
       </div>
 
