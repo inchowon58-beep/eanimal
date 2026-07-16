@@ -160,6 +160,73 @@ function stripTags(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/** 공백 무시 비교용 */
+function compact(s: string): string {
+  return s.replace(/\s+/g, "");
+}
+
+/**
+ * 타이틀에 전달 키워드가 반드시 들어가게 보정.
+ * 없으면 앞에 "키워드 · " 형태로 붙인다.
+ */
+export function ensureKeywordInTitle(title: string, keyword: string): string {
+  const k = keyword.trim();
+  const t = (title || "").trim();
+  if (!k) return t;
+  if (compact(t).includes(compact(k))) return t;
+  if (!t) return k;
+  return `${k} · ${t}`.trim();
+}
+
+/**
+ * 본문에 전달 키워드가 반드시 들어가게 보정.
+ * 없으면 본문 맨 앞에 키워드를 포함한 문단을 삽입한다.
+ */
+export function ensureKeywordInContent(html: string, keyword: string): string {
+  const k = keyword.trim();
+  if (!k) return html;
+  const text = stripTags(html);
+  if (compact(text).includes(compact(k))) return html;
+  const lead = `<p>${k}에 대해 알아보시는 분들을 위해, ${k}와 관련해 확인하면 좋은 점을 정리해 안내합니다.</p>\n`;
+  return lead + (html || "");
+}
+
+/**
+ * 본문에 키워드가 최소 minCount회 이상 나오도록 보정.
+ * (이미 충분하면 그대로, 부족하면 자연스러운 문단을 앞에 추가)
+ */
+export function ensureKeywordMentions(
+  html: string,
+  keyword: string,
+  minCount = 4
+): string {
+  const k = keyword.trim();
+  if (!k) return html;
+  let out = ensureKeywordInContent(html, k);
+  const kn = compact(k);
+  const countMentions = (h: string) => {
+    const t = compact(stripTags(h));
+    if (!kn) return 0;
+    let n = 0;
+    let idx = 0;
+    while (true) {
+      const found = t.indexOf(kn, idx);
+      if (found < 0) break;
+      n++;
+      idx = found + kn.length;
+    }
+    return n;
+  };
+  let count = countMentions(out);
+  while (count < minCount) {
+    out =
+      `<p>${k} 관련 정보를 확인할 때는 공개된 자료와 지역 여건을 함께 살펴보는 것이 도움이 됩니다. ${k}에 대해 더 알고 싶다면 아래 내용을 참고해 주세요.</p>\n` +
+      out;
+    count = countMentions(out);
+  }
+  return out;
+}
+
 const ANGLES = [
   "기본 개념과 배경을 중심으로",
   "실질적인 준비 사항과 절차를 중심으로",
@@ -233,9 +300,10 @@ ${related.length ? `함께 다룰 연관 키워드: ${related.join(", ")}` : ""}
 고유 시드: ${keyword}-${hash(keyword)}-${Date.now()}
 
 작성 조건:
-- 키워드를 본문 전체에 자연스럽게 4~6회 포함
+- title은 반드시 전달 키워드 "${keyword}" 문자열을 그대로 포함할 것 (띄어쓰기·동의어로 바꾸지 말 것). 권장 형식: "${keyword} · 짧은 부제"
+- 키워드 "${keyword}"를 본문에 그대로(띄어쓰기 변경 없이) 4~6회 이상 포함
 ${related.length ? `- 위 연관 키워드(${related.join(", ")})도 본문에 각각 1회 이상 자연스럽게 녹여서 포함` : ""}
-${related.length ? `- title 끝에도 연관 키워드를 공백으로 구분해 함께 배치 (예: "본제목 ${related.join(" ")}")` : ""}
+${related.length ? `- title 끝에도 연관 키워드를 공백으로 구분해 함께 배치` : ""}
 - 정보성/공익적 톤. 특정 업체 홍보·과장·허위·수익보장 표현 금지
 - 전화번호·주소·상호 같은 연락처 문구는 넣지 말 것
 - h2 소제목 정확히 4개, 각 섹션마다 p 문단 2개 이상. 목록이 필요하면 ul 사용
@@ -246,8 +314,8 @@ ${related.length ? `- title 끝에도 연관 키워드를 공백으로 구분해
 
 JSON만 응답:
 {
-  "title": "60자 이내 안내 제목",
-  "description": "150자 이내 메타 설명",
+  "title": "${keyword} · 짧은 부제 (연관키워드 포함 가능)",
+  "description": "150자 이내 메타 설명 (키워드 포함)",
   "slug": "english-lowercase-slug",
   "content": "HTML 본문",
   "faqs": [{"question":"질문1","answer":"답변1"},{"question":"질문2","answer":"답변2"}]
@@ -265,13 +333,20 @@ JSON만 응답:
             slug?: string;
             faqs?: SeoFaq[];
           };
-          const content = sanitizeContentHtml(parsed.content || "");
+          const content = ensureKeywordMentions(
+            sanitizeContentHtml(parsed.content || ""),
+            keyword,
+            4
+          );
           if (content && stripTags(content).length >= MIN_BODY_CHARS) {
             const faqs = (parsed.faqs || [])
               .filter((f) => f?.question?.trim() && f?.answer?.trim())
               .slice(0, 3);
             return {
-              title: (parsed.title || keyword).trim().slice(0, 80),
+              title: ensureKeywordInTitle(
+                (parsed.title || keyword).trim(),
+                keyword
+              ),
               description: (parsed.description || "").trim().slice(0, 200),
               content,
               faqs: faqs.length ? faqs : buildFallbackFaqs(keyword, region),
@@ -353,7 +428,7 @@ ${relatedLine}
   );
 
   return {
-    title: `${keyword} 안내 · ${SITE.name}`.slice(0, 80),
+    title: ensureKeywordInTitle(`${keyword} 안내 · ${SITE.name}`, keyword),
     description: `${area} ${keyword} 관련 정보를 ${SITE.name}에서 정리했습니다. 공공데이터와 검증 정보 기반 안내.`.slice(
       0,
       200

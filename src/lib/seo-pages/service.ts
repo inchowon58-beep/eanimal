@@ -1,5 +1,8 @@
 import {
   buildSlug,
+  ensureKeywordInContent,
+  ensureKeywordInTitle,
+  ensureKeywordMentions,
   generateSeoContent,
   normalizeKeyword,
   resolveRegionDetail,
@@ -150,10 +153,17 @@ export async function createSeoPageFromKeyword(
 
   const slug = await uniqueSlug(keyword, generated.slug);
   const regionName = detail.sido ?? generated.region;
-  const injected = injectImages(generated.content, imagePool, keyword);
+  // 전달 키워드가 제목·본문에 반드시 들어가도록 최종 보정
+  const safeTitle = ensureKeywordInTitle(generated.title || keyword, keyword);
+  const safeContent = ensureKeywordMentions(
+    ensureKeywordInContent(generated.content, keyword),
+    keyword,
+    4
+  );
+  const injected = injectImages(safeContent, imagePool, keyword);
   const content = injected.html;
   const imageUrl = injected.ogImage;
-  const title = composeTitleWithRelated(generated.title || keyword, related);
+  const title = composeTitleWithRelated(safeTitle, related);
 
   const { id, error } = await insertSeoPage({
     slug,
