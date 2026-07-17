@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getCategory } from "@/lib/seo-pages/categories";
-import { listCategoryGuidePool } from "@/lib/seo-pages/store";
+import type { RelatedGuideItem } from "@/lib/seo-pages/store";
 import { buildGuideHashtags } from "@/lib/seo/region-keywords";
 
 interface Props {
@@ -9,6 +9,8 @@ interface Props {
   keyword: string;
   sido?: string | null;
   sigungu?: string | null;
+  /** 페이지에서 한 번 조회한 풀을 넘기면 추가 DB 없음 */
+  pool?: RelatedGuideItem[];
 }
 
 /**
@@ -16,12 +18,13 @@ interface Props {
  * - 지역×카테고리 롱테일 문구를 노출
  * - 실제 가이드 페이지가 있으면 링크로, 없으면 텍스트만 (도어웨이 방지)
  */
-export default async function GuideRegionPhrases({
+export default function GuideRegionPhrases({
   category,
   currentSlug,
   keyword,
   sido,
   sigungu,
+  pool = [],
 }: Props) {
   if (!sido && !sigungu) return null;
 
@@ -40,7 +43,6 @@ export default async function GuideRegionPhrases({
 
   if (!phrases.length) return null;
 
-  const pool = await listCategoryGuidePool(category, currentSlug, 400);
   const byCompact = new Map(
     pool.map((p) => [p.keyword.replace(/\s+/g, ""), p.slug])
   );

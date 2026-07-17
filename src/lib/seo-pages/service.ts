@@ -196,8 +196,16 @@ export async function createSeoPageFromKeyword(
   await consumeQuota();
 
   try {
-    const { revalidatePath } = await import("next/cache");
-    // ISR 캐시 즉시 갱신 — 생성 직후 봇/사용자가 최신 HTML을 받게
+    const { revalidatePath, revalidateTag } = await import("next/cache");
+    const {
+      SEO_PAGES_TAG,
+      seoPageTag,
+      seoPoolTag,
+    } = await import("@/lib/seo-pages/guide-data");
+    // 정적 HTML 캐시 즉시 무효화 — 이후 warm으로 CDN에 새 HTML 적재
+    revalidateTag(SEO_PAGES_TAG, "max");
+    revalidateTag(seoPageTag(slug), "max");
+    revalidateTag(seoPoolTag(category), "max");
     revalidatePath(`/guide/${slug}`, "page");
     revalidatePath("/sitemap.xml");
   } catch {
@@ -212,20 +220,33 @@ export async function createSeoPageFromKeyword(
     /* 대기열 등록 실패는 무시 (IndexNow가 백업) */
   }
 
-  // 생성 즉시 네이버에 색인 통보(IndexNow) — "웹문서 등록요청"을 서버가 자동 처리
-  const notifyIndexNow = async () => {
+  // IndexNow + 정적 HTML 워밍(첫 방문 지연 제거)
+  const afterCreate = async () => {
     try {
       const { submitToIndexNow } = await import("@/lib/seo/indexnow");
       await submitToIndexNow([`/guide/${slug}`]);
     } catch {
       /* 통보 실패는 무시 (주간 크론이 재통보) */
     }
+    try {
+      const { SITE } = await import("@/lib/site");
+      const base = SITE.url.replace(/\/$/, "");
+      if (base && !base.includes("localhost")) {
+        await fetch(`${base}/guide/${encodeURIComponent(slug)}`, {
+          method: "GET",
+          headers: { "user-agent": "eanimal-guide-warm/1.0" },
+          cache: "no-store",
+        });
+      }
+    } catch {
+      /* 워밍 실패는 무시 — 첫 방문 때 on-demand 생성 */
+    }
   };
   try {
     const { after } = await import("next/server");
-    after(notifyIndexNow);
+    after(afterCreate);
   } catch {
-    void notifyIndexNow();
+    void afterCreate();
   }
 
   return {

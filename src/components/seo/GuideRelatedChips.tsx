@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listCategoryGuidePool } from "@/lib/seo-pages/store";
+import type { RelatedGuideItem } from "@/lib/seo-pages/store";
 
 interface Props {
   category: string | null | undefined;
@@ -8,6 +8,8 @@ interface Props {
   categoryLabel?: string;
   /** 본문 직후 칩바용 (기본 18) */
   limit?: number;
+  /** 페이지에서 한 번 조회한 풀을 넘기면 추가 DB 없음 */
+  pool?: RelatedGuideItem[];
 }
 
 function seededShuffle<T>(arr: T[], seed: string): T[] {
@@ -33,14 +35,13 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
  * aga식 동종 랜딩 칩바 — 같은 카테고리 가이드를 키워드 칩으로 내부링크.
  * 시드 고정 셔플로 크롤마다 결과가 흔들리지 않게 함.
  */
-export default async function GuideRelatedChips({
-  category,
+export default function GuideRelatedChips({
   currentSlug,
   keyword,
   categoryLabel,
   limit = 18,
+  pool = [],
 }: Props) {
-  const pool = await listCategoryGuidePool(category, currentSlug, 300);
   if (pool.length === 0) return null;
 
   const items = seededShuffle(pool, currentSlug).slice(0, limit);

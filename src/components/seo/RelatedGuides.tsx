@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { listCategoryGuidePool } from "@/lib/seo-pages/store";
+import type { RelatedGuideItem } from "@/lib/seo-pages/store";
 
 interface Props {
   category: string | null | undefined;
   currentSlug: string;
   keyword: string;
   categoryLabel?: string;
+  /** 페이지에서 한 번 조회한 풀을 넘기면 추가 DB 없음 */
+  pool?: RelatedGuideItem[];
 }
 
 function seededShuffle<T>(arr: T[], seed: string): T[] {
@@ -28,13 +30,12 @@ function seededShuffle<T>(arr: T[], seed: string): T[] {
 }
 
 /** 같은 카테고리에서 생성된 글을 시드 고정으로 노출 (키워드 카드) */
-export default async function RelatedGuides({
-  category,
+export default function RelatedGuides({
   currentSlug,
   keyword,
   categoryLabel,
+  pool = [],
 }: Props) {
-  const pool = await listCategoryGuidePool(category, currentSlug, 300);
   if (pool.length === 0) return null;
 
   const items = seededShuffle(pool, `${currentSlug}-cards`).slice(0, 30);

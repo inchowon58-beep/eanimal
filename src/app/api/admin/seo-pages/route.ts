@@ -50,7 +50,12 @@ export async function DELETE(req: Request) {
 
   if (slug) {
     try {
-      const { revalidatePath } = await import("next/cache");
+      const { revalidatePath, revalidateTag } = await import("next/cache");
+      const { SEO_PAGES_TAG, seoPageTag } = await import(
+        "@/lib/seo-pages/guide-data"
+      );
+      revalidateTag(SEO_PAGES_TAG, "max");
+      revalidateTag(seoPageTag(slug), "max");
       revalidatePath(`/guide/${slug}`, "page");
       revalidatePath("/sitemap.xml");
     } catch {
