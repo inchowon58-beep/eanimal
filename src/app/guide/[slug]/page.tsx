@@ -20,7 +20,6 @@ import {
 import {
   getGuidePageCached,
   getGuidePoolCached,
-  GUIDE_REVALIDATE_SECONDS,
   listAllGuideSlugs,
 } from "@/lib/seo-pages/guide-data";
 import { buildGuideHashtags } from "@/lib/seo/region-keywords";
@@ -33,7 +32,8 @@ import { SITE } from "@/lib/site";
  * - CDN에 24시간 캐시 (생성·삭제 시 태그로 즉시 무효화)
  * - 유기동물 공고 등 다른 라우트는 기존 동적 유지
  */
-export const revalidate = GUIDE_REVALIDATE_SECONDS;
+// Next.js page config는 빌드 시 정적 분석되므로 숫자 리터럴이어야 한다.
+export const revalidate = 86400;
 export const dynamic = "force-static";
 export const dynamicParams = true;
 

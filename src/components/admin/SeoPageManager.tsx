@@ -599,6 +599,7 @@ export default function SeoPageManager() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-sm font-medium text-foreground">
               연관 키워드{" "}
+              <span className="text-xs font-normal text-muted-fg">
                 (쉼표로 구분 · 생성 시 랜덤 3개: 제목 1개 · 본문 3개 · 지역 롱테일 힌트)
               </span>
             </p>
