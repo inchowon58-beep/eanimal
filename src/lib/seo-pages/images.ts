@@ -1,4 +1,5 @@
 import { getSupabaseServer, getSupabaseService } from "@/lib/supabase/server";
+import { SITE } from "@/lib/site";
 
 const BUCKET = process.env.SEO_IMAGE_BUCKET || "seo-images";
 const IMG_RE = /\.(png|jpe?g|webp|gif|avif)$/i;
@@ -236,7 +237,10 @@ export async function listFolderImages(folder: string | null | undefined): Promi
   }
 }
 
-type Layout = "single" | "left" | "right" | "row2" | "row3" | "hero3" | "hero4";
+type Layout = "single" | "left" | "right" | "row2";
+
+const MIN_IMAGES = 5;
+const MAX_IMAGES = 7;
 
 function escapeAttr(s: string): string {
   return s
@@ -247,36 +251,47 @@ function escapeAttr(s: string): string {
     .slice(0, 120);
 }
 
-function imgTag(url: string, alt: string): string {
+/** 키워드 기반 alt 변형 — 동일 문구 반복 최소화 */
+function altVariants(seed: string): string[] {
+  const k = (seed || "반려동물").trim().slice(0, 60) || "반려동물";
+  return [
+    k,
+    `${k} 안내`,
+    `${k} 정보`,
+    `${k} 관련 사진`,
+    `${k} 살펴보기`,
+    `${SITE.name} ${k}`.trim(),
+    `${k} 확인 포인트`,
+  ];
+}
+function imgTag(
+  url: string,
+  alt: string,
+  opts?: { eager?: boolean; index?: number }
+): string {
   const safe = url.replace(/"/g, "&quot;");
-  return `<img src="${safe}" alt="${escapeAttr(alt)}" loading="lazy" />`;
+  const a = escapeAttr(alt);
+  const eager = Boolean(opts?.eager);
+  const loading = eager ? "eager" : "lazy";
+  const fetchPriority = eager ? ' fetchpriority="high"' : "";
+  const widthHint = ' width="1200" height="800"';
+  return `<img src="${safe}" alt="${a}" title="${a}" loading="${loading}" decoding="async"${fetchPriority}${widthHint} />`;
 }
 
-function groupHtml(layout: Layout, imgs: string[], alt: string): string {
+function groupHtml(
+  layout: Layout,
+  imgs: string[],
+  alts: string[],
+  eagerFirst: boolean
+): string {
   switch (layout) {
-    case "single":
-      return `<figure class="seo-fig">${imgTag(imgs[0], alt)}</figure>`;
     case "row2":
       return `<div class="seo-grid cols-2">${imgs
-        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
+        .map((u, i) => `<figure>${imgTag(u, alts[i] || alts[0], { eager: eagerFirst && i === 0 })}</figure>`)
         .join("")}</div>`;
-    case "row3":
-      return `<div class="seo-grid cols-3">${imgs
-        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
-        .join("")}</div>`;
-    case "hero3":
-    case "hero4": {
-      const [big, ...rest] = imgs;
-      const n = rest.length === 3 ? "n3" : "n2";
-      return `<div class="seo-hero"><figure class="seo-hero-big">${imgTag(
-        big,
-        alt
-      )}</figure><div class="seo-hero-row ${n}">${rest
-        .map((u) => `<figure>${imgTag(u, alt)}</figure>`)
-        .join("")}</div></div>`;
-    }
+    case "single":
     default:
-      return `<figure class="seo-fig">${imgTag(imgs[0], alt)}</figure>`;
+      return `<figure class="seo-fig">${imgTag(imgs[0], alts[0], { eager: eagerFirst })}</figure>`;
   }
 }
 
@@ -284,11 +299,13 @@ function sideHtml(
   url: string,
   paragraphHtml: string,
   side: "left" | "right",
-  alt: string
+  alt: string,
+  eager: boolean
 ): string {
   return `<div class="seo-side ${side}"><figure class="seo-side-img">${imgTag(
     url,
-    alt
+    alt,
+    { eager }
   )}</figure><div class="seo-side-text">${paragraphHtml}</div></div>`;
 }
 
@@ -314,12 +331,10 @@ function tokenize(html: string): string[] {
 const isPara = (b: string) => /^<p\b/i.test(b);
 
 /**
- * 생성된 본문 HTML에 이미지를 삽입한다.
- * - 모든 문단(<p>)에 최소 1장 이상의 이미지를 배치한다.
- * - 이미지가 문단 수보다 많으면 일부 문단은 2~4장(한 줄 2·3장, 큰 사진+작은 사진)으로 묶는다.
- * - 단독 1장은 전체폭/좌/우(글 옆 배치) 중 랜덤.
- * - seed(키워드)를 이미지 alt에 사용한다.
- * - 반환: 삽입된 HTML과 대표(OG) 이미지 URL
+ * 생성된 본문 HTML에 이미지를 5~7장만 삽입한다.
+ * - 키워드 기반 alt/title, 첫 장은 eager(LCP), 나머지는 lazy
+ * - 문단 사이·좌우 배치로 자연스럽게 분산 (문단마다 도배하지 않음)
+ * - 반환 ogImage: 본문 대표 이미지(없으면 null → 페이지 메타에서 로고 폴백)
  */
 export function injectImages(
   html: string,
@@ -328,75 +343,174 @@ export function injectImages(
 ): { html: string; ogImage: string | null } {
   if (!pool.length) return { html, ogImage: null };
 
-  const alt = (seed || "반려동물").trim().slice(0, 80) || "반려동물";
   const rng = makeRng(`${seed}-layout`);
   const shuffled = shuffle(pool, rng);
-  const avail = shuffled.length;
+  const want =
+    shuffled.length <= MIN_IMAGES
+      ? shuffled.length
+      : MIN_IMAGES + Math.floor(rng() * (MAX_IMAGES - MIN_IMAGES + 1));
+  const selected = shuffled.slice(0, Math.min(want, MAX_IMAGES, shuffled.length));
+  if (!selected.length) return { html, ogImage: null };
+
+  const variants = altVariants(seed);
+  const alts = selected.map((_, i) => variants[i % variants.length]);
 
   const blocks = tokenize(html);
-  const P = blocks.filter(isPara).length;
+  const paraIdxs: number[] = [];
+  blocks.forEach((b, i) => {
+    if (isPara(b)) paraIdxs.push(i);
+  });
 
-  if (P === 0) {
-    const imgs = shuffled.slice(0, Math.min(3, avail));
-    const layout: Layout = imgs.length >= 3 ? "row3" : imgs.length === 2 ? "row2" : "single";
-    return { html: `${groupHtml(layout, imgs, alt)}\n${html}`, ogImage: shuffled[0] ?? null };
-  }
+  // 배치 계획: 남은 장수로 싱글/2열을 섞어 문단에 붙임
+  type Plan = { blockIndex: number; layout: Layout; urls: string[]; alts: string[] };
+  const plans: Plan[] = [];
+  let imgCursor = 0;
+  const remaining = () => selected.length - imgCursor;
 
-  // 문단별 이미지 장수: 기본 1장씩(이미지 부족 시 앞 문단부터) + 남는 이미지 일부 분배
-  const counts = new Array<number>(P).fill(0);
-  let used = 0;
-  for (let i = 0; i < P && used < avail; i++) {
-    counts[i] = 1;
-    used += 1;
-  }
-  const maxTotal = Math.min(avail, P + 6, 16);
-  let extra = Math.max(0, maxTotal - used);
-  while (extra > 0) {
-    let idx = Math.floor(rng() * P);
-    let tries = 0;
-    while (counts[idx] >= 4 && tries < P) {
-      idx = (idx + 1) % P;
-      tries += 1;
+  const pickParaSlots = (need: number): number[] => {
+    if (!paraIdxs.length) return [];
+    const slots: number[] = [];
+    const step = Math.max(1, Math.floor(paraIdxs.length / need));
+    let start = Math.min(1, paraIdxs.length - 1); // 첫 문단 직후부터 선호
+    for (let n = 0; n < need && slots.length < need; n++) {
+      const idx = paraIdxs[Math.min(start + n * step, paraIdxs.length - 1)];
+      if (!slots.includes(idx)) slots.push(idx);
     }
-    if (counts[idx] >= 4) break;
-    counts[idx] += 1;
-    used += 1;
-    extra -= 1;
-  }
-
-  let cursor = 0;
-  const groupFor = (n: number): { layout: Layout; imgs: string[] } => {
-    const imgs = shuffled.slice(cursor, cursor + n);
-    cursor += n;
-    let layout: Layout;
-    if (n <= 1) layout = (["single", "left", "right"] as Layout[])[Math.floor(rng() * 3)];
-    else if (n === 2) layout = "row2";
-    else if (n === 3) layout = rng() < 0.5 ? "row3" : "hero3";
-    else layout = "hero4";
-    return { layout, imgs };
+    // 부족하면 앞에서부터 채움
+    for (const idx of paraIdxs) {
+      if (slots.length >= need) break;
+      if (!slots.includes(idx)) slots.push(idx);
+    }
+    return slots.slice(0, need);
   };
 
-  const out: string[] = [];
-  let p = 0;
-  for (const b of blocks) {
-    if (isPara(b)) {
-      const c = counts[p];
-      p += 1;
-      if (c <= 0) {
-        out.push(b);
-        continue;
-      }
-      const g = groupFor(c);
-      if (c === 1 && (g.layout === "left" || g.layout === "right")) {
-        out.push(sideHtml(g.imgs[0], b, g.layout, alt));
-      } else {
-        out.push(b);
-        out.push(groupHtml(g.layout, g.imgs, alt));
-      }
-      continue;
+  // 대략 배치 횟수 추정 (2열은 2장 소모)
+  const approxPlacements = Math.max(
+    1,
+    Math.ceil(selected.length * (0.65 + rng() * 0.2))
+  );
+  const slots = pickParaSlots(Math.min(approxPlacements, Math.max(paraIdxs.length, 1)));
+
+  if (!slots.length) {
+    // 문단 없으면 상단에 묶어서 배치
+    while (remaining() > 0) {
+      const n = remaining() >= 2 && rng() < 0.35 ? 2 : 1;
+      const urls = selected.slice(imgCursor, imgCursor + n);
+      const a = alts.slice(imgCursor, imgCursor + n);
+      imgCursor += n;
+      const layout: Layout = n === 2 ? "row2" : "single";
+      plans.push({ blockIndex: -1, layout, urls, alts: a });
     }
-    out.push(b);
+    const prepend = plans
+      .map((p, i) =>
+        groupHtml(p.layout, p.urls, p.alts, i === 0)
+      )
+      .join("\n");
+    return { html: `${prepend}\n${html}`, ogImage: selected[0] };
   }
 
-  return { html: out.join("\n"), ogImage: shuffled[0] ?? null };
+  let slotPos = 0;
+  let firstPlaced = false;
+  while (remaining() > 0 && slotPos < slots.length) {
+    const left = remaining();
+    const canPair =
+      left >= 2 &&
+      slotPos < slots.length - 1 &&
+      rng() < 0.4;
+    const n = canPair ? 2 : 1;
+    const urls = selected.slice(imgCursor, imgCursor + n);
+    const a = alts.slice(imgCursor, imgCursor + n);
+    imgCursor += n;
+
+    let layout: Layout;
+    if (n === 2) layout = "row2";
+    else layout = (["single", "left", "right"] as Layout[])[Math.floor(rng() * 3)];
+
+    plans.push({
+      blockIndex: slots[slotPos],
+      layout,
+      urls,
+      alts: a,
+    });
+    slotPos += 1;
+    firstPlaced = true;
+  }
+
+  // 남은 이미지(슬롯 부족)는 마지막 문단 뒤에 싱글/row2로
+  while (remaining() > 0) {
+    const n = remaining() >= 2 && rng() < 0.5 ? 2 : 1;
+    const urls = selected.slice(imgCursor, imgCursor + n);
+    const a = alts.slice(imgCursor, imgCursor + n);
+    imgCursor += n;
+    const lastPara = paraIdxs[paraIdxs.length - 1] ?? blocks.length - 1;
+    plans.push({
+      blockIndex: lastPara,
+      layout: n === 2 ? "row2" : "single",
+      urls,
+      alts: a,
+    });
+  }
+
+  const byBlock = new Map<number, Plan[]>();
+  for (const p of plans) {
+    const list = byBlock.get(p.blockIndex) || [];
+    list.push(p);
+    byBlock.set(p.blockIndex, list);
+  }
+
+  let eagerUsed = false;
+  const out: string[] = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    const plansHere = byBlock.get(i) || [];
+    if (!plansHere.length) {
+      out.push(b);
+      continue;
+    }
+
+    // side 레이아웃은 문단과 합침 (첫 plan만 side 가능)
+    let paraEmitted = false;
+    for (const plan of plansHere) {
+      const eager = !eagerUsed;
+      if (
+        plan.layout === "left" ||
+        plan.layout === "right"
+      ) {
+        if (!paraEmitted && isPara(b)) {
+          out.push(
+            sideHtml(plan.urls[0], b, plan.layout, plan.alts[0], eager)
+          );
+          paraEmitted = true;
+          eagerUsed = true;
+        } else {
+          out.push(groupHtml("single", plan.urls, plan.alts, eager));
+          eagerUsed = true;
+        }
+      } else {
+        if (!paraEmitted) {
+          out.push(b);
+          paraEmitted = true;
+        }
+        out.push(groupHtml(plan.layout, plan.urls, plan.alts, eager));
+        eagerUsed = true;
+      }
+    }
+    if (!paraEmitted) out.push(b);
+  }
+
+  // prepend plans with blockIndex -1
+  const prependPlans = byBlock.get(-1) || [];
+  if (prependPlans.length) {
+    const head = prependPlans
+      .map((p) => {
+        const eager = !eagerUsed;
+        eagerUsed = true;
+        return groupHtml(p.layout === "left" || p.layout === "right" ? "single" : p.layout, p.urls, p.alts, eager);
+      })
+      .join("\n");
+    return { html: `${head}\n${out.join("\n")}`, ogImage: selected[0] };
+  }
+
+  void firstPlaced;
+  return { html: out.join("\n"), ogImage: selected[0] };
 }

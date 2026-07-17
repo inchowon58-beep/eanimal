@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import MarketingBanner from "@/components/places/MarketingBanner";
 import ConsultationForm from "@/components/seo/ConsultationForm";
+import GuideKeywordBrand from "@/components/seo/GuideKeywordBrand";
 import GuideRegionPhrases from "@/components/seo/GuideRegionPhrases";
 import GuideRelatedChips from "@/components/seo/GuideRelatedChips";
 import JsonLd from "@/components/seo/JsonLd";
@@ -10,7 +11,11 @@ import RegionalRelated from "@/components/seo/RegionalRelated";
 import RelatedGuides from "@/components/seo/RelatedGuides";
 import { resolveCategoryForm } from "@/lib/consultation/forms";
 import { getCategory } from "@/lib/seo-pages/categories";
-import { ensureNaverDescription, resolveRegionDetail } from "@/lib/seo-pages/generate";
+import {
+  ensureKeywordInTitle,
+  ensureNaverDescription,
+  resolveRegionDetail,
+} from "@/lib/seo-pages/generate";
 import { getCategoryForms } from "@/lib/seo-pages/settings";
 import { getSeoPageBySlug, listSeoPageSlugs } from "@/lib/seo-pages/store";
 import { buildGuideHashtags } from "@/lib/seo/region-keywords";
@@ -56,13 +61,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) return { title: "페이지를 찾을 수 없습니다" };
 
   const canonical = `/guide/${encodeURIComponent(page.slug)}`;
+  const pageTitle = ensureKeywordInTitle(page.title, page.keyword);
   const description = ensureNaverDescription(
     page.description || `${page.keyword} 관련 정보 안내 — ${SITE.name}`,
     page.keyword
   );
-  const hasImage = Boolean(page.image_url);
   const ogUrl = page.image_url || LOGO_URL;
-  const ogImages = [{ url: ogUrl, alt: page.title }];
+  const hasContentImage = Boolean(page.image_url);
+  const ogImages = [
+    {
+      url: ogUrl,
+      alt: hasContentImage ? pageTitle : `${SITE.name} 로고`,
+      width: 1200,
+      height: 630,
+    },
+  ];
 
   const tags = guideKeywords(page);
   const keywords = Array.from(
@@ -70,13 +83,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   );
 
   return {
-    title: page.title,
+    // 루트 template → "{제목} · 반려문화위원회"
+    title: pageTitle,
     description,
     keywords,
     alternates: { canonical },
     openGraph: {
       type: "article",
-      title: page.title,
+      title: pageTitle,
       description,
       url: canonical,
       siteName: SITE.name,
@@ -84,8 +98,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: ogImages,
     },
     twitter: {
-      card: hasImage ? "summary_large_image" : "summary",
-      title: page.title,
+      card: hasContentImage ? "summary_large_image" : "summary",
+      title: pageTitle,
       description,
       images: ogImages.map((i) => i.url),
     },
@@ -101,6 +115,7 @@ export default async function GuidePage({ params }: Props) {
   const page = await getSeoPageBySlug(decodeURIComponent(slug));
   if (!page) notFound();
 
+  const pageTitle = ensureKeywordInTitle(page.title, page.keyword);
   const description = ensureNaverDescription(
     page.description || `${page.keyword} 관련 정보 안내`,
     page.keyword
@@ -124,21 +139,30 @@ export default async function GuidePage({ params }: Props) {
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "홈", item: SITE.url },
-        { "@type": "ListItem", position: 2, name: page.title },
+        { "@type": "ListItem", position: 2, name: pageTitle },
       ],
     },
     {
       "@context": "https://schema.org",
       "@type": "Article",
-      headline: page.title,
+      headline: pageTitle,
       description,
       inLanguage: "ko-KR",
       url: `${SITE.url}/guide/${encodeURIComponent(page.slug)}`,
       datePublished: page.created_at,
       dateModified: page.updated_at,
-      ...(page.image_url ? { image: page.image_url } : {}),
+      ...(page.image_url
+        ? { image: page.image_url }
+        : { image: LOGO_URL }),
       author: { "@type": "Organization", name: SITE.name },
       publisher: { "@type": "Organization", name: SITE.name },
+      isPartOf: {
+        "@type": "WebSite",
+        name: SITE.name,
+        url: SITE.url,
+      },
+      about: page.keyword,
+      keywords: [page.keyword, ...(page.keywords || [])].join(", "),
     },
     ...(page.faqs.length
       ? [
@@ -165,8 +189,9 @@ export default async function GuidePage({ params }: Props) {
 
       {/* H1·본문을 상단에 — 검색·크롤 우선 */}
       <article className="mt-4 rounded-2xl border border-border bg-card p-6 sm:p-9">
+        <GuideKeywordBrand keyword={page.keyword} />
         <h1 className="font-display text-2xl font-bold leading-snug text-foreground sm:text-3xl">
-          {page.title}
+          {pageTitle}
         </h1>
         {page.region_name && (
           <p className="mt-2 text-sm text-muted-fg">{page.region_name}</p>
