@@ -1,34 +1,30 @@
 import { NextResponse } from "next/server";
-import { processNextGenerationJob } from "@/lib/seo-pages/service";
-import { verifyWorkerRequest } from "@/lib/seo-pages/worker-auth";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
-export const maxDuration = 300;
 
 /**
- * VM SEO 생성 워커 — 대기열에서 1개 꺼내 생성.
- * 인증: Authorization: Bearer <CRON_SECRET | SYNC_SECRET | COLLECTION_WORKER_SECRET>
- *       또는 ?secret= (기존 폼스키 VM 토큰과 호환)
- * 반환: 429(쿼터/기간, Retry-After) · 200(생성/비어있음) · 503(오류)
+ * 대량등록(VM 대기열 생성) 비활성화 — Vercel 과금 방지.
+ * 기존 VM이 호출해도 생성을 시작하지 않는다.
  */
-export async function POST(req: Request) {
-  if (!verifyWorkerRequest(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const result = await processNextGenerationJob();
-
-  const headers: Record<string, string> = {};
-  if (result.retryAfterSec) headers["Retry-After"] = String(result.retryAfterSec);
-
-  let status = 200;
-  if (result.status === "quota" || result.status === "service") status = 429;
-  else if (result.status === "failed") status = 503;
-
-  return NextResponse.json(result, { status, headers });
+function disabled() {
+  return NextResponse.json(
+    {
+      ok: false,
+      status: "disabled",
+      message: "대량등록(SEO 워커 생성)이 비활성화되었습니다. 관리자에서 키워드 1개씩 즉시 생성하세요.",
+      remaining: 0,
+      shouldPause: true,
+      retryAfterSec: 86400,
+    },
+    { status: 410, headers: { "Cache-Control": "no-store", "Retry-After": "86400" } }
+  );
 }
 
-export async function GET(req: Request) {
-  return POST(req);
+export async function POST() {
+  return disabled();
+}
+
+export async function GET() {
+  return disabled();
 }

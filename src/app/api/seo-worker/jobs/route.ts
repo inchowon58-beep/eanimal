@@ -1,71 +1,40 @@
 import { NextResponse } from "next/server";
-import { getQuotaStatus } from "@/lib/seo-pages/settings";
-import { listSeoJobs } from "@/lib/seo-pages/store";
-import { nextKstMidnightIso, secondsUntilKstMidnight } from "@/lib/seo-pages/service";
-import { verifyWorkerRequest } from "@/lib/seo-pages/worker-auth";
-import type { SeoJob } from "@/lib/seo-pages/types";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 /**
- * VM SEO 생성 프로그램 — 대기 키워드 목록 + 일일 한도 상태 (폼스키 규격 호환)
- * GET /api/seo-worker/jobs
- * Authorization: Bearer <CRON_SECRET | SYNC_SECRET | COLLECTION_WORKER_SECRET>
- *
- * shouldPause === true 이면 generate-next 호출하지 말고 retryAfterSec 만큼 대기.
+ * 대량등록(VM 대기열) 비활성화 — Vercel 과금 방지.
+ * 기존 VM 폴링이 와도 대기 작업이 없다고 응답한다.
  */
-export async function GET(req: Request) {
-  if (!verifyWorkerRequest(req)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const [jobs, quota] = await Promise.all([listSeoJobs(), getQuotaStatus()]);
-
-  const summary = { pending: 0, processing: 0, completed: 0, failed: 0, total: jobs.length };
-  for (const j of jobs) {
-    if (j.status in summary) (summary as Record<string, number>)[j.status] += 1;
-  }
-
-  const pendingJobs = jobs
-    .filter((j) => j.status === "pending")
-    .sort((a: SeoJob, b: SeoJob) => a.requested_at.localeCompare(b.requested_at));
-
-  const shouldPause = !quota.service.active || quota.remaining <= 0;
-  const retryAfterSec = shouldPause ? secondsUntilKstMidnight() : undefined;
-  const nextEligibleAt = shouldPause ? nextKstMidnightIso() : undefined;
-
-  const body = {
-    count: pendingJobs.length,
-    summary,
-    quota: {
-      limit: quota.limit,
-      used: quota.used,
-      remaining: quota.remaining,
-      shouldPause,
-      retryAfterSec,
-      nextEligibleAt,
-      service: quota.service,
+function disabled() {
+  return NextResponse.json(
+    {
+      count: 0,
+      summary: { pending: 0, processing: 0, completed: 0, failed: 0, total: 0 },
+      quota: {
+        limit: 0,
+        used: 0,
+        remaining: 0,
+        shouldPause: true,
+        retryAfterSec: 86400,
+      },
+      dailyLimit: 0,
+      usedToday: 0,
+      remainingToday: 0,
+      shouldPause: true,
+      retryAfterSec: 86400,
+      jobs: [],
+      message: "대량등록(SEO 워커)이 비활성화되었습니다.",
     },
-    dailyLimit: quota.limit,
-    usedToday: quota.used,
-    remainingToday: quota.remaining,
-    shouldPause,
-    retryAfterSec,
-    nextEligibleAt,
-    jobs: pendingJobs.map((j) => ({
-      id: j.id,
-      keyword: j.keyword,
-      requestedAt: j.requested_at,
-    })),
-  };
-
-  const headers: Record<string, string> = { "Cache-Control": "no-store" };
-  if (shouldPause && retryAfterSec) headers["Retry-After"] = String(retryAfterSec);
-
-  return NextResponse.json(body, { headers });
+    { status: 200, headers: { "Cache-Control": "no-store", "Retry-After": "86400" } }
+  );
 }
 
-export async function POST(req: Request) {
-  return GET(req);
+export async function GET() {
+  return disabled();
+}
+
+export async function POST() {
+  return disabled();
 }

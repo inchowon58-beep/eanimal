@@ -38,14 +38,6 @@ interface CopyState {
   remaining: number;
 }
 
-interface JobRow {
-  id: string;
-  keyword: string;
-  status: string;
-  requested_at: string;
-  error: string | null;
-}
-
 interface Quota {
   limit: number;
   used: number;
@@ -54,37 +46,13 @@ interface Quota {
   service: { active: boolean; expired: boolean; expiresAt: string | null; daysRemaining: number };
 }
 
-interface Summary {
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  total: number;
-}
-
-type CreateMode = "single" | "bulk" | "file";
-type QueueView = "pending" | "processing" | "completed" | "failed" | "all";
-
 const LIST_SIZE = 10;
-
-const STATUS_LABEL: Record<string, string> = {
-  pending: "대기",
-  processing: "생성중",
-  completed: "완료",
-  failed: "실패",
-};
 
 export default function SeoPageManager() {
   const [pages, setPages] = useState<SeoPageRow[]>([]);
-  const [jobs, setJobs] = useState<JobRow[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [pendingText, setPendingText] = useState("");
   const [quota, setQuota] = useState<Quota | null>(null);
 
-  const [mode, setMode] = useState<CreateMode>("single");
   const [keyword, setKeyword] = useState("");
-  const [bulkText, setBulkText] = useState("");
-  const [queueView, setQueueView] = useState<QueueView>("pending");
   const [listPage, setListPage] = useState(1);
 
   const [category, setCategory] = useState<string>(SEO_CATEGORIES[0].id);
@@ -114,11 +82,8 @@ export default function SeoPageManager() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [pagesRes, queueRes, quotaRes, copyRes] = await Promise.all([
+      const [pagesRes, quotaRes, copyRes] = await Promise.all([
         fetch("/api/admin/seo-pages", { cache: "no-store" }),
-        fetch(`/api/admin/seo-queue?category=${encodeURIComponent(category)}`, {
-          cache: "no-store",
-        }),
         fetch("/api/admin/seo-quota", { cache: "no-store" }),
         fetch("/api/admin/seo-pages/copy-batch", { cache: "no-store" }),
       ]);
@@ -129,12 +94,6 @@ export default function SeoPageManager() {
       if (pagesRes.ok) {
         const d = await pagesRes.json();
         setPages(d.pages || []);
-      }
-      if (queueRes.ok) {
-        const d = await queueRes.json();
-        setSummary(d.summary || null);
-        setJobs(d.jobs || []);
-        setPendingText(d.pendingText || "");
       }
       if (quotaRes.ok) setQuota(await quotaRes.json());
       if (copyRes.ok) {
@@ -150,7 +109,7 @@ export default function SeoPageManager() {
       setMessage("데이터 로드 실패");
     }
     setLoading(false);
-  }, [category]);
+  }, []);
 
   useEffect(() => {
     void loadData();
@@ -196,10 +155,6 @@ export default function SeoPageManager() {
     () => pages.slice((listPage - 1) * LIST_SIZE, listPage * LIST_SIZE),
     [pages, listPage]
   );
-  const filteredJobs = useMemo(
-    () => (queueView === "all" ? jobs : jobs.filter((j) => j.status === queueView)),
-    [jobs, queueView]
-  );
 
   useEffect(() => {
     if (listPage > totalListPages) setListPage(totalListPages);
@@ -227,70 +182,6 @@ export default function SeoPageManager() {
       }
     } catch {
       setMessage("생성 중 오류가 발생했습니다.");
-    }
-    setBusy(false);
-  }
-
-  async function enqueue(text: string) {
-    if (!text.trim()) {
-      setMessage("등록할 키워드를 입력하거나 파일을 선택해주세요.");
-      return;
-    }
-    setBusy(true);
-    setMessage("대기열에 등록 중...");
-    try {
-      const res = await fetch("/api/admin/seo-queue", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, category }),
-      });
-      const d = await res.json().catch(() => ({}));
-      setMessage(d.message || d.error || (res.ok ? "등록 완료" : "등록 실패"));
-      if (res.ok) {
-        setBulkText("");
-        await loadData();
-      }
-    } catch {
-      setMessage("대량 등록 중 오류가 발생했습니다.");
-    }
-    setBusy(false);
-  }
-
-  async function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.name.toLowerCase().endsWith(".txt")) {
-      setMessage("TXT 파일만 업로드할 수 있습니다.");
-      e.target.value = "";
-      return;
-    }
-    try {
-      const text = await file.text();
-      setBulkText(text);
-      await enqueue(text);
-    } catch {
-      setMessage("파일을 읽는 중 오류가 발생했습니다.");
-    }
-    e.target.value = "";
-  }
-
-  async function savePending() {
-    if (!confirm("대기 중 키워드 목록을 아래 내용으로 교체합니다. (생성중/완료/실패 기록은 유지)")) {
-      return;
-    }
-    setBusy(true);
-    setMessage("대기열 저장 중...");
-    try {
-      const res = await fetch("/api/admin/seo-queue", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: pendingText, category }),
-      });
-      const d = await res.json().catch(() => ({}));
-      setMessage(d.message || d.error || (res.ok ? "저장 완료" : "저장 실패"));
-      if (res.ok) await loadData();
-    } catch {
-      setMessage("대기열 저장 중 오류가 발생했습니다.");
     }
     setBusy(false);
   }
@@ -866,227 +757,48 @@ export default function SeoPageManager() {
         </div>
         )}
 
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(
-            [
-              ["single", "개별 등록"],
-              ["bulk", "대량 등록 (텍스트)"],
-              ["file", "TXT 파일"],
-            ] as const
-          ).map(([m, label]) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`rounded-xl border px-4 py-2 text-sm font-medium transition ${
-                mode === m
-                  ? "border-accent bg-accent text-white"
-                  : "border-border bg-card text-muted-fg hover:text-foreground"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {mode === "single" && (
-          <form onSubmit={handleGenerate} className="mt-4 space-y-3">
-            <input
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="예: 거제 유기견 입양, 강아지 예방접종 시기"
-              disabled={!canGenerate}
-              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-            />
-            <button
-              type="submit"
-              disabled={busy || !canGenerate}
-              className="rounded-xl bg-accent px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? "생성 중..." : "즉시 생성"}
-            </button>
-            {!canGenerate && (
-              <p className="text-xs text-danger">
-                {!serviceActive
-                  ? "사용 기간이 만료되었습니다. 마스터설정에서 연장하세요."
-                  : "오늘 발행 한도에 도달했습니다."}
-              </p>
-            )}
-          </form>
-        )}
-
-        {mode === "bulk" && (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void enqueue(bulkText);
-            }}
-            className="mt-4 space-y-3"
+        <form onSubmit={handleGenerate} className="mt-4 space-y-3">
+          <input
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="예: 거제 유기견 입양, 강아지 예방접종 시기"
+            disabled={!canGenerate}
+            className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+          />
+          <button
+            type="submit"
+            disabled={busy || !canGenerate}
+            className="rounded-xl bg-accent px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90 disabled:opacity-50"
           >
-            <textarea
-              value={bulkText}
-              onChange={(e) => setBulkText(e.target.value)}
-              rows={8}
-              placeholder={"한 줄에 키워드 하나씩 또는 쉼표(,)로 구분\n\n예:\n거제 유기견 입양\n창원 강아지 무료분양"}
-              disabled={!serviceActive}
-              className="w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
-            />
-            <button
-              type="submit"
-              disabled={busy || !serviceActive}
-              className="rounded-xl bg-foreground px-6 py-2.5 text-sm font-bold text-background transition hover:opacity-90 disabled:opacity-50"
-            >
-              {busy ? "등록 중..." : "대기열에 등록"}
-            </button>
-            <p className="text-xs text-muted-fg">
-              대기열에 등록하면 VM 워커가 하루 발행 한도 내에서 1개씩 순차 생성합니다.
+            {busy ? "생성 중..." : "즉시 생성"}
+          </button>
+          {!canGenerate && (
+            <p className="text-xs text-danger">
+              {!serviceActive
+                ? "사용 기간이 만료되었습니다. 마스터설정에서 연장하세요."
+                : "오늘 발행 한도에 도달했습니다."}
             </p>
-          </form>
-        )}
-
-        {mode === "file" && (
-          <div className="mt-4 space-y-3">
-            <input
-              type="file"
-              accept=".txt,text/plain"
-              onChange={handleFile}
-              disabled={busy || !serviceActive}
-              className="block w-full text-sm text-muted-fg file:mr-4 file:rounded-xl file:border-0 file:bg-accent file:px-4 file:py-2 file:font-bold file:text-white"
-            />
-            <p className="text-xs text-muted-fg">
-              한 줄에 키워드 하나, 또는 쉼표(,)로 여러 키워드 구분. 최대 500개.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* 대기열 */}
-      <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold text-foreground">
-            생성 대기열
-            <span className="ml-2 rounded-full bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
-              {SEO_CATEGORIES.find((c) => c.id === category)?.label ?? category}
-            </span>
-            {summary && (
-              <span className="ml-2 text-xs font-normal text-muted-fg">
-                대기 {summary.pending} · 생성중 {summary.processing} · 완료 {summary.completed} · 실패{" "}
-                {summary.failed}
-              </span>
-            )}
-          </h2>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href={`/api/admin/seo-queue?download=txt&category=${encodeURIComponent(category)}`}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-fg hover:text-foreground"
-            >
-              TXT 다운로드
-            </a>
-            <button
-              type="button"
-              onClick={() => void loadData()}
-              disabled={loading}
-              className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-fg hover:text-foreground disabled:opacity-50"
-            >
-              새로고침
-            </button>
-            <button
-              type="button"
-              onClick={savePending}
-              disabled={busy || !serviceActive}
-              className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background disabled:opacity-50"
-            >
-              대기열 저장
-            </button>
-          </div>
-        </div>
-
-        <textarea
-          value={pendingText}
-          onChange={(e) => setPendingText(e.target.value)}
-          rows={8}
-          placeholder="대기 중인 키워드가 여기에 표시됩니다."
-          disabled={!serviceActive}
-          className="mt-4 w-full resize-y rounded-xl border border-border bg-background px-4 py-2.5 font-mono text-sm outline-none focus:border-accent"
-        />
-
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(
-            [
-              ["pending", "대기"],
-              ["processing", "생성중"],
-              ["completed", "완료"],
-              ["failed", "실패"],
-              ["all", "전체"],
-            ] as const
-          ).map(([s, label]) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setQueueView(s)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
-                queueView === s
-                  ? "border-accent bg-accent text-white"
-                  : "border-border text-muted-fg hover:text-foreground"
-              }`}
-            >
-              {label}
-              {summary && s !== "all" && (
-                <span className="ml-1 opacity-80">({summary[s as keyof Summary]})</span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {filteredJobs.length === 0 ? (
-          <p className="mt-3 rounded-xl border border-dashed border-border py-4 text-center text-sm text-muted-fg">
-            표시할 항목이 없습니다.
+          )}
+          <p className="text-xs text-muted-fg">
+            대량등록·VM 대기열은 과금 방지를 위해 비활성화되었습니다. 키워드는 1개씩만 생성합니다.
           </p>
-        ) : (
-          <div className="mt-3 max-h-64 overflow-auto rounded-xl border border-border">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-muted/60">
-                <tr>
-                  <th className="px-3 py-2 text-left font-medium text-muted-fg">키워드</th>
-                  <th className="w-20 px-3 py-2 text-left font-medium text-muted-fg">상태</th>
-                  <th className="w-36 px-3 py-2 text-left font-medium text-muted-fg">등록일</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredJobs.map((j) => (
-                  <tr key={j.id} className="border-t border-border">
-                    <td className="px-3 py-2 text-foreground">
-                      {j.keyword}
-                      {j.error && <span className="ml-2 text-xs text-danger">{j.error}</span>}
-                    </td>
-                    <td className="px-3 py-2">
-                      <span
-                        className={
-                          j.status === "completed"
-                            ? "text-accent"
-                            : j.status === "failed"
-                              ? "text-danger"
-                              : "text-muted-fg"
-                        }
-                      >
-                        {STATUS_LABEL[j.status] || j.status}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-muted-fg">
-                      {j.requested_at.slice(0, 16).replace("T", " ")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        </form>
       </section>
 
       {/* 생성된 페이지 */}
       <section className="rounded-2xl border border-border bg-card p-5 sm:p-6">
-        <h2 className="font-semibold text-foreground">생성된 SEO 페이지 ({pages.length})</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-semibold text-foreground">생성된 SEO 페이지 ({pages.length})</h2>
+          <button
+            type="button"
+            onClick={() => void loadData()}
+            disabled={loading}
+            className="rounded-lg border border-border px-3 py-1.5 text-xs text-muted-fg hover:text-foreground disabled:opacity-50"
+          >
+            새로고침
+          </button>
+        </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-muted/30 p-3">
           <button

@@ -12,7 +12,7 @@ export default async function AdminSeoPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <AdminHeader active="seo" subtitle="키워드 SEO 페이지 생성 · 대량등록 · VM 발행" />
+      <AdminHeader active="seo" subtitle="키워드 SEO 페이지 즉시 생성" />
       <SeoPageManager />
     </div>
   );
