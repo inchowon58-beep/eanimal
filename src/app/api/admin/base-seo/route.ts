@@ -70,7 +70,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: false, error: "urls가 필요합니다." }, { status: 400 });
       }
       const result = await submitToIndexNow(urls);
-      return NextResponse.json({ ok: result.ok, ...result });
+      return NextResponse.json(result);
     }
 
     if (action === "batch") {

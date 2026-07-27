@@ -1,7 +1,5 @@
 @echo off
-chcp 65001 >nul
 cd /d "%~dp0"
-echo 의존성 확인 중...
-python -m pip install -q -r requirements.txt
-python launcher.py
-if errorlevel 1 pause
+REM 검은 콘솔 없이 브라우저만 열리도록 VBS로 실행
+wscript //nologo "%~dp0run_hidden.vbs"
+exit /b 0

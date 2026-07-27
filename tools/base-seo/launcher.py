@@ -124,7 +124,10 @@ def main() -> None:
         },
     }
 
-    print(f"기본 SEO 발행기: {url}")
+    try:
+        print(f"기본 SEO 발행기: {url}", flush=True)
+    except Exception:
+        pass
     uvicorn.run(
         app,
         host="127.0.0.1",
