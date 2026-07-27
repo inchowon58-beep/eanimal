@@ -8,9 +8,10 @@ import {
   removeBaseSeo,
 } from "@/lib/base-seo/service";
 import { listBaseSeoPages } from "@/lib/base-seo/store";
+import { submitToIndexNow } from "@/lib/seo/indexnow";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function unauthorized() {
   return NextResponse.json({ ok: false, error: "인증이 필요합니다." }, { status: 401 });
@@ -50,25 +51,55 @@ export async function POST(req: Request) {
     keyword?: string;
     category?: string;
     keywords?: string[];
+    items?: { keyword: string; imageUrl?: string | null }[];
+    imageCdn?: string;
+    imageMax?: number;
+    imageExt?: string;
+    imageUrl?: string;
+    urls?: string[];
+    skipIndexNow?: boolean;
   } | null;
 
   const action = body?.action || "generate";
   const category = body?.category?.trim() || "shelter";
 
   try {
+    if (action === "indexnow") {
+      const urls = (body?.urls || []).map((u) => String(u).trim()).filter(Boolean);
+      if (!urls.length) {
+        return NextResponse.json({ ok: false, error: "urls가 필요합니다." }, { status: 400 });
+      }
+      const result = await submitToIndexNow(urls);
+      return NextResponse.json({ ok: result.ok, ...result });
+    }
+
     if (action === "batch") {
       const keywords = (body?.keywords || [])
         .map((k) => String(k).trim())
         .filter(Boolean)
         .slice(0, 200);
-      if (!keywords.length) {
+      const items = (body?.items || [])
+        .map((it) => ({
+          keyword: String(it.keyword || "").trim(),
+          imageUrl: it.imageUrl || null,
+        }))
+        .filter((it) => it.keyword)
+        .slice(0, 200);
+
+      if (!keywords.length && !items.length) {
         return NextResponse.json(
-          { ok: false, error: "keywords 배열이 필요합니다." },
+          { ok: false, error: "keywords 또는 items가 필요합니다." },
           { status: 400 }
         );
       }
+
       const result = await createBaseSeoBatch(keywords, category, {
         publishSource: local ? "local" : "web",
+        imageCdn: body?.imageCdn,
+        imageMax: body?.imageMax,
+        imageExt: body?.imageExt,
+        items: items.length ? items : undefined,
+        skipIndexNow: Boolean(body?.skipIndexNow),
       });
       return NextResponse.json({
         ok: true,
@@ -79,6 +110,7 @@ export async function POST(req: Request) {
           keyword: p.keyword,
           path: `/info/${p.slug}`,
           url: absoluteInfoUrl(p.slug),
+          image_url: p.image_url,
         })),
       });
     }
@@ -89,6 +121,11 @@ export async function POST(req: Request) {
     }
     const page = await createBaseSeoFromKeyword(keyword, category, {
       publishSource: local ? "local" : "web",
+      imageUrl: body?.imageUrl,
+      imageCdn: body?.imageCdn,
+      imageMax: body?.imageMax,
+      imageExt: body?.imageExt,
+      skipIndexNow: Boolean(body?.skipIndexNow),
     });
     return NextResponse.json({
       ok: true,

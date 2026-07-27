@@ -14,10 +14,33 @@ export class BaseSeoError extends Error {
   }
 }
 
+function pickCdnImage(
+  cdn: string | null | undefined,
+  max: number | null | undefined,
+  ext: string | null | undefined,
+  seed: string
+): string | null {
+  const base = (cdn || "").trim().replace(/\/$/, "");
+  const n = Number(max) || 0;
+  if (!base.startsWith("http") || n < 1) return null;
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) | 0;
+  const num = (Math.abs(h) % n) + 1;
+  const e = (ext || "webp").replace(/^\./, "") || "webp";
+  return `${base}/${String(num).padStart(2, "0")}.${e}`;
+}
+
 export async function createBaseSeoFromKeyword(
   keywordRaw: string,
   categoryRaw: string,
-  opts?: { publishSource?: "web" | "local"; imageUrl?: string | null }
+  opts?: {
+    publishSource?: "web" | "local";
+    imageUrl?: string | null;
+    imageCdn?: string | null;
+    imageMax?: number | null;
+    imageExt?: string | null;
+    skipIndexNow?: boolean;
+  }
 ): Promise<BaseSeoPage> {
   const keyword = keywordRaw.trim();
   const category = categoryRaw.trim();
@@ -26,11 +49,21 @@ export async function createBaseSeoFromKeyword(
     throw new BaseSeoError("유효한 카테고리를 선택해 주세요.");
   }
 
+  const imageUrl =
+    (opts?.imageUrl || "").trim() ||
+    pickCdnImage(
+      opts?.imageCdn,
+      opts?.imageMax,
+      opts?.imageExt,
+      `${keyword}|${category}`
+    ) ||
+    null;
+
   const draft = generateBaseSeoContent({
     keyword,
     category,
     publishSource: opts?.publishSource || "web",
-    imageUrl: opts?.imageUrl,
+    imageUrl,
   });
 
   const { id, error } = await insertBaseSeoPage(draft);
@@ -47,11 +80,13 @@ export async function createBaseSeoFromKeyword(
     /* ignore */
   }
 
-  try {
-    const { submitToIndexNow } = await import("@/lib/seo/indexnow");
-    await submitToIndexNow([`/info/${draft.slug}`]);
-  } catch {
-    /* ignore */
+  if (!opts?.skipIndexNow) {
+    try {
+      const { submitToIndexNow } = await import("@/lib/seo/indexnow");
+      await submitToIndexNow([`/info/${draft.slug}`]);
+    } catch {
+      /* ignore */
+    }
   }
 
   const now = new Date().toISOString();
@@ -67,16 +102,33 @@ export async function createBaseSeoFromKeyword(
 export async function createBaseSeoBatch(
   keywords: string[],
   category: string,
-  opts?: { publishSource?: "web" | "local" }
+  opts?: {
+    publishSource?: "web" | "local";
+    imageCdn?: string | null;
+    imageMax?: number | null;
+    imageExt?: string | null;
+    items?: { keyword: string; imageUrl?: string | null }[];
+    skipIndexNow?: boolean;
+  }
 ): Promise<{ created: BaseSeoPage[]; errors: { keyword: string; error: string }[] }> {
   const created: BaseSeoPage[] = [];
   const errors: { keyword: string; error: string }[] = [];
-  for (const kw of keywords) {
-    const keyword = kw.trim();
+
+  const list = opts?.items?.length
+    ? opts.items
+    : keywords.map((keyword) => ({ keyword, imageUrl: null as string | null }));
+
+  for (const item of list) {
+    const keyword = String(item.keyword || "").trim();
     if (!keyword) continue;
     try {
       const page = await createBaseSeoFromKeyword(keyword, category, {
         publishSource: opts?.publishSource || "local",
+        imageUrl: item.imageUrl,
+        imageCdn: opts?.imageCdn,
+        imageMax: opts?.imageMax,
+        imageExt: opts?.imageExt,
+        skipIndexNow: true,
       });
       created.push(page);
     } catch (e) {
@@ -86,6 +138,16 @@ export async function createBaseSeoBatch(
       });
     }
   }
+
+  if (!opts?.skipIndexNow && created.length) {
+    try {
+      const { submitToIndexNow } = await import("@/lib/seo/indexnow");
+      await submitToIndexNow(created.map((p) => `/info/${p.slug}`));
+    } catch {
+      /* ignore */
+    }
+  }
+
   return { created, errors };
 }
 

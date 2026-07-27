@@ -1,0 +1,215 @@
+:root {
+  --bg: #f3f5f8;
+  --card: #fff;
+  --text: #152033;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --primary: #1e3a5f;
+  --primary-hover: #274b78;
+  --danger: #b91c1c;
+  --ok: #166534;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 8px 24px rgba(16, 24, 40, 0.06);
+  font-family: "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(900px 400px at 10% -10%, #dbeafe 0%, transparent 55%),
+    radial-gradient(700px 360px at 100% 0%, #e2e8f0 0%, transparent 50%),
+    var(--bg);
+  color: var(--text);
+}
+.wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 28px 18px 48px;
+}
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.top h1 {
+  margin: 0;
+  font-size: 1.55rem;
+  letter-spacing: -0.03em;
+}
+.sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #ecfdf5;
+  color: var(--ok);
+  border: 1px solid #a7f3d0;
+}
+.badge.warn {
+  background: #fef2f2;
+  color: var(--danger);
+  border-color: #fecaca;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px 18px 16px;
+  margin-bottom: 14px;
+}
+.card h2 {
+  margin: 0 0 12px;
+  font-size: 0.95rem;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.field-note {
+  margin: -4px 0 12px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 10px;
+}
+input, select, textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text);
+  background: #fff;
+}
+textarea { resize: vertical; line-height: 1.45; }
+.row2, .row3 {
+  display: grid;
+  gap: 12px;
+}
+.row2 { grid-template-columns: 1fr 1fr; }
+.row3 { grid-template-columns: 1fr 110px 100px; align-items: end; }
+.checks {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  font-weight: 600;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+.check input { width: auto; }
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+.btn {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn:hover { background: #f8fafc; }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn.primary:hover { background: var(--primary-hover); }
+.btn.ghost { background: #fff; }
+.log {
+  margin: 0;
+  min-height: 180px;
+  max-height: 360px;
+  overflow: auto;
+  background: #0b1220;
+  color: #e2e8f0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.urls {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+.urls a { color: #1d4ed8; word-break: break-all; }
+.url-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+.url-toolbar .hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.url-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fafbfc;
+}
+.url-row a { flex: 1; min-width: 0; }
+.url-row .copy-one {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.url-row .copy-one:hover { background: #f1f5f9; }
+
+@media (max-width: 720px) {
+  .row2, .row3 { grid-template-columns: 1fr; }
+  .top { flex-direction: column; }
+}

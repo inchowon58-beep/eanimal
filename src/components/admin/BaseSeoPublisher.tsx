@@ -19,10 +19,14 @@ interface Row {
 export default function BaseSeoPublisher() {
   const [category, setCategory] = useState(SEO_CATEGORIES[0].id);
   const [keyword, setKeyword] = useState("");
+  const [imageCdn, setImageCdn] = useState("");
+  const [imageMax, setImageMax] = useState("");
+  const [imageExt, setImageExt] = useState("webp");
   const [pages, setPages] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [doIndexNow, setDoIndexNow] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -57,6 +61,10 @@ export default function BaseSeoPublisher() {
           action: "generate",
           keyword: keyword.trim(),
           category,
+          imageCdn: imageCdn.trim() || undefined,
+          imageMax: Number(imageMax) || undefined,
+          imageExt: imageExt.trim() || "webp",
+          skipIndexNow: !doIndexNow,
         }),
       });
       const d = await res.json().catch(() => ({}));
@@ -128,6 +136,39 @@ export default function BaseSeoPublisher() {
             placeholder="예: 안산 강아지보호소, 수원 동물병원"
             className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
           />
+          <div className="grid gap-2 sm:grid-cols-[1fr_100px_90px]">
+            <input
+              type="text"
+              value={imageCdn}
+              onChange={(e) => setImageCdn(e.target.value)}
+              placeholder="이미지 폴더 URL (선택) https://.../folder"
+              className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-accent"
+            />
+            <input
+              type="number"
+              min={0}
+              value={imageMax}
+              onChange={(e) => setImageMax(e.target.value)}
+              placeholder="최대번호"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+            <input
+              type="text"
+              value={imageExt}
+              onChange={(e) => setImageExt(e.target.value)}
+              placeholder="webp"
+              className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-accent"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-xs text-muted-fg">
+            <input
+              type="checkbox"
+              checked={doIndexNow}
+              onChange={(e) => setDoIndexNow(e.target.checked)}
+              className="h-3.5 w-3.5 accent-[var(--accent)]"
+            />
+            IndexNow 함께 전송
+          </label>
           <button
             type="submit"
             disabled={busy || !keyword.trim()}

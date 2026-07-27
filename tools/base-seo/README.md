@@ -1,32 +1,41 @@
-# 기본 SEO 로컬 발행
+# 기본 SEO 로컬 발행 (웹 UI)
 
-Gemini 없이 **카테고리 기본 양식**으로 `/info/{slug}` 페이지를 만듭니다.  
-Vercel 대량 호출 대신 **이 PC에서** 실행하세요.
+유아독존 SEO 발행기와 같은 방식의 **브라우저 UI**입니다.  
+**네이버 웹문서 등록은 제외**했고, 아래만 지원합니다.
+
+- 카테고리 기본 템플릿 생성
+- CDN 이미지 폴더 URL + 최대번호
+- 사이트 발행 (API)
+- IndexNow
 
 ## 준비
 
-1. Supabase SQL Editor에서 `supabase/migration_base_seo_pages.sql` 실행
-2. `.env.local`에 `CRON_SECRET` 또는 `SYNC_SECRET` 또는 `BASE_SEO_PUBLISH_SECRET`
-3. (선택) `BASE_SEO_API_BASE=https://www.eanimal.kr`
+1. Supabase에서 `supabase/migration_base_seo_pages.sql` 실행
+2. 프로젝트 `.env.local`에 `CRON_SECRET` (또는 `SYNC_SECRET` / `BASE_SEO_PUBLISH_SECRET`)
+3. (선택) `tools/base-seo/.env` 에 API URL·이미지 기본값
 
-## GUI
+```bat
+cd tools\base-seo
+pip install -r requirements.txt
+```
+
+## 실행
 
 ```bat
 실행_기본SEO발행.bat
 ```
 
+브라우저가 `http://127.0.0.1:8780` 으로 열립니다.
+
+1. 사이트 URL 확인 (`https://www.eanimal.kr`)
+2. 카테고리 선택
+3. 이미지 폴더 URL + 최대번호 + 확장자
+4. 키워드 붙여넣기
+5. **사이트 발행** / **IndexNow** 체크
+6. **발행 시작**
+
 ## CLI
 
 ```bat
-publish_cli.bat shelter keywords.example.txt
+python publish.py --category shelter --keywords keywords.example.txt --image-cdn https://.../folder --image-max 79
 ```
-
-또는:
-
-```bat
-python publish.py --category shelter --keywords keywords.txt
-```
-
-## 관리자 1건 발행
-
-사이트 관리자 → **기본SEO발행** 탭 → 키워드 입력 → **1건 발행**
