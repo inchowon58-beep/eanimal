@@ -39,3 +39,8 @@ next-env.d.ts
 __pycache__/
 *.pyc
 
+
+# base-seo local runtime
+tools/base-seo/gui_settings.json
+tools/base-seo/output/
+tools/base-seo/.env
