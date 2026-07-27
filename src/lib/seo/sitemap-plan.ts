@@ -7,7 +7,7 @@ export const SITEMAP_CHUNK = 1000;
 
 export type SitemapChunk =
   | { kind: "core" }
-  | { kind: "places" | "rescues" | "travel" | "guide"; from: number; to: number };
+  | { kind: "places" | "rescues" | "travel" | "guide" | "info"; from: number; to: number };
 
 export interface SitemapUrl {
   loc: string;
@@ -36,16 +36,17 @@ async function tableCount(table: string): Promise<number> {
  * 인덱스와 개별 사이트맵이 동일 계획을 공유해 id → 데이터 구간을 매핑한다.
  */
 export async function getSitemapPlan(): Promise<SitemapChunk[]> {
-  const [places, rescues, travel, guide] = await Promise.all([
+  const [places, rescues, travel, guide, info] = await Promise.all([
     tableCount("places"),
     tableCount("rescued_animals"),
     tableCount("pet_travel"),
     tableCount("seo_pages"),
+    tableCount("base_seo_pages"),
   ]);
 
   const chunks: SitemapChunk[] = [{ kind: "core" }];
   const addChunks = (
-    kind: "places" | "rescues" | "travel" | "guide",
+    kind: "places" | "rescues" | "travel" | "guide" | "info",
     total: number
   ) => {
     for (let from = 0; from < total; from += SITEMAP_CHUNK) {
@@ -57,6 +58,7 @@ export async function getSitemapPlan(): Promise<SitemapChunk[]> {
   addChunks("rescues", rescues);
   addChunks("travel", travel);
   addChunks("guide", guide);
+  addChunks("info", info);
 
   return chunks;
 }
@@ -137,14 +139,29 @@ export async function getChunkUrls(
     }));
   }
 
+  if (chunk.kind === "guide") {
+    const { data } = await supabase
+      .from("seo_pages")
+      .select("slug, updated_at")
+      .eq("hidden", false)
+      .order("slug", { ascending: true })
+      .range(chunk.from, chunk.to);
+    return (data ?? []).map((r) => ({
+      loc: `${base}/guide/${encodeURIComponent(r.slug)}`,
+      lastmod: r.updated_at || undefined,
+      changefreq: "weekly",
+      priority: 0.7,
+    }));
+  }
+
   const { data } = await supabase
-    .from("seo_pages")
+    .from("base_seo_pages")
     .select("slug, updated_at")
     .eq("hidden", false)
     .order("slug", { ascending: true })
     .range(chunk.from, chunk.to);
   return (data ?? []).map((r) => ({
-    loc: `${base}/guide/${encodeURIComponent(r.slug)}`,
+    loc: `${base}/info/${encodeURIComponent(r.slug)}`,
     lastmod: r.updated_at || undefined,
     changefreq: "weekly",
     priority: 0.7,

@@ -6,6 +6,7 @@ const TABS = [
   { id: "consultations", label: "상담신청", href: "/admin/consultations" },
   { id: "banners", label: "배너 설정", href: "/admin/banners" },
   { id: "seo", label: "SEO 페이지", href: "/admin/seo" },
+  { id: "base-seo", label: "기본SEO발행", href: "/admin/base-seo" },
 ] as const;
 
 export type AdminTab = (typeof TABS)[number]["id"];
