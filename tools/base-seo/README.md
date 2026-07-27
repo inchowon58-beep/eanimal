@@ -31,11 +31,12 @@ pip install -r requirements.txt
 2. 카테고리 선택
 3. 이미지 폴더 URL + 최대번호 + 확장자
 4. 키워드 붙여넣기
-5. **사이트 발행** / **IndexNow** 체크
-6. **발행 시작**
+5. **발행 건수**(전체 중 몇 건) / **한 번 발행 개수**(API 배치, 기본 40)
+6. **사이트 발행** / **IndexNow** 체크
+7. **발행 시작**
 
 ## CLI
 
 ```bat
-python publish.py --category shelter --keywords keywords.example.txt --image-cdn https://.../folder --image-max 79
+python publish.py --category shelter --keywords keywords.example.txt --chunk 40 --image-cdn https://.../folder --image-max 79
 ```

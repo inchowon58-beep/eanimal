@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
-from publisher.api_client import DEFAULT_CHUNK, publish_batch, submit_indexnow
+from publisher.api_client import DEFAULT_CHUNK, MAX_CHUNK, publish_batch, submit_indexnow
 from publisher.cdn_images import image_pool_info
 from publisher.config import Config
 from app_paths import app_dir
@@ -23,12 +23,23 @@ def parse_keywords(text: str) -> list[str]:
     return out
 
 
+def normalize_chunk_size(value: int | None) -> int:
+    try:
+        n = int(value or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n < 1:
+        n = DEFAULT_CHUNK
+    return min(MAX_CHUNK, max(1, n))
+
+
 def run_pipeline(
     *,
     cfg: Config,
     category: str,
     keyword_text: str,
     count: int | None = None,
+    chunk_size: int | None = None,
     image_cdn: str = "",
     image_max: int = 0,
     image_ext: str = "webp",
@@ -46,8 +57,9 @@ def run_pipeline(
     if not keywords:
         raise RuntimeError("키워드가 없습니다.")
 
+    size = normalize_chunk_size(chunk_size)
     info = image_pool_info(image_cdn, image_max, image_ext)
-    log(f"카테고리={category} · 키워드 {len(keywords)}건")
+    log(f"카테고리={category} · 키워드 {len(keywords)}건 · 한 번 발행 {size}건")
     log(
         f"이미지={info['mode']}"
         + (f" ({info['range']}.{info['ext']})" if info["range"] else "")
@@ -65,9 +77,9 @@ def run_pipeline(
     created_pages: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
 
-    for i in range(0, len(keywords), DEFAULT_CHUNK):
-        batch = keywords[i : i + DEFAULT_CHUNK]
-        log(f"발행 배치 {i // DEFAULT_CHUNK + 1} ({len(batch)}건)…")
+    for i in range(0, len(keywords), size):
+        batch = keywords[i : i + size]
+        log(f"발행 중… {i + 1}~{i + len(batch)} / {len(keywords)}")
         result = publish_batch(
             cfg,
             category=category,

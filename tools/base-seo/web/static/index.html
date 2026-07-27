@@ -47,15 +47,19 @@
 
     <section class="card">
       <h2>키워드</h2>
-      <div class="row2">
+      <div class="row-kw">
         <label>발행 건수 (비우면 전체)
           <input id="count" type="number" min="0" placeholder="전체" />
+        </label>
+        <label>한 번 발행 개수
+          <input id="chunkSize" type="number" min="1" max="100" value="40" />
         </label>
         <label class="checks">
           <span class="check"><input type="checkbox" id="doPublish" checked /> 사이트 발행</span>
           <span class="check"><input type="checkbox" id="doIndexnow" checked /> IndexNow</span>
         </label>
       </div>
+      <p class="field-note">한 번 발행 개수 = API에 한 번에 보내는 건수(기본 40, 최대 100). 타임아웃이 나면 20·10으로 줄여 보세요.</p>
       <textarea id="keywords" rows="10" placeholder="한 줄에 키워드 하나&#10;예: 안산 강아지보호소"></textarea>
       <div class="actions">
         <button type="button" id="btnSave" class="btn ghost">설정 저장</button>

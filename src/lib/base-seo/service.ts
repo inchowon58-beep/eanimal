@@ -40,6 +40,7 @@ export async function createBaseSeoFromKeyword(
     imageMax?: number | null;
     imageExt?: string | null;
     skipIndexNow?: boolean;
+    skipRevalidate?: boolean;
   }
 ): Promise<BaseSeoPage> {
   const keyword = keywordRaw.trim();
@@ -71,13 +72,15 @@ export async function createBaseSeoFromKeyword(
     throw new BaseSeoError(error || "저장에 실패했습니다.", "STORAGE");
   }
 
-  try {
-    const { revalidatePath, revalidateTag } = await import("next/cache");
-    revalidatePath(`/info/${draft.slug}`, "page");
-    revalidatePath("/sitemap.xml");
-    revalidateTag("base-seo-pages", "max");
-  } catch {
-    /* ignore */
+  if (!opts?.skipRevalidate) {
+    try {
+      const { revalidatePath, revalidateTag } = await import("next/cache");
+      revalidatePath(`/info/${draft.slug}`, "page");
+      revalidatePath("/sitemap.xml");
+      revalidateTag("base-seo-pages", "max");
+    } catch {
+      /* ignore */
+    }
   }
 
   if (!opts?.skipIndexNow) {
@@ -129,6 +132,7 @@ export async function createBaseSeoBatch(
         imageMax: opts?.imageMax,
         imageExt: opts?.imageExt,
         skipIndexNow: true,
+        skipRevalidate: true,
       });
       created.push(page);
     } catch (e) {
@@ -136,6 +140,19 @@ export async function createBaseSeoBatch(
         keyword,
         error: e instanceof Error ? e.message : "실패",
       });
+    }
+  }
+
+  if (created.length) {
+    try {
+      const { revalidatePath, revalidateTag } = await import("next/cache");
+      revalidatePath("/sitemap.xml");
+      revalidateTag("base-seo-pages", "max");
+      for (const p of created.slice(0, 40)) {
+        revalidatePath(`/info/${p.slug}`, "page");
+      }
+    } catch {
+      /* ignore */
     }
   }
 

@@ -54,6 +54,7 @@ class RunBody(BaseModel):
     category: str = "shelter"
     keywords: str = ""
     count: int | None = None
+    chunk_size: int | None = 40
     image_cdn: str = ""
     image_max: int = 0
     image_ext: str = "webp"
@@ -71,6 +72,7 @@ class SettingsBody(BaseModel):
     category: str = "shelter"
     last_keywords: str = ""
     count: str = ""
+    chunk_size: str = "40"
 
 
 @app.get("/")
@@ -93,6 +95,7 @@ def meta() -> dict[str, Any]:
             "category": saved.get("category") or "shelter",
             "last_keywords": saved.get("last_keywords") or "",
             "count": str(saved.get("count") or ""),
+            "chunk_size": str(saved.get("chunk_size") or "40"),
         },
     }
 
@@ -175,6 +178,7 @@ def start_run(body: RunBody) -> dict[str, Any]:
                     "category": body.category,
                     "last_keywords": body.keywords,
                     "count": str(body.count or ""),
+                    "chunk_size": str(body.chunk_size or 40),
                 }
             )
 
@@ -187,6 +191,7 @@ def start_run(body: RunBody) -> dict[str, Any]:
                 category=body.category,
                 keyword_text=body.keywords,
                 count=body.count,
+                chunk_size=body.chunk_size,
                 image_cdn=body.image_cdn,
                 image_max=body.image_max,
                 image_ext=body.image_ext,

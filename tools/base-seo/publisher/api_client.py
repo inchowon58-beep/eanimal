@@ -12,7 +12,9 @@ from publisher.config import Config
 LogFn = Callable[[str], None] | None
 REQUEST_TIMEOUT_SEC = 120
 MAX_RETRIES = 3
-DEFAULT_CHUNK = 20
+# 유아독존 SEO 발행기와 동일 기본값 (API 한 번 호출당 건수)
+DEFAULT_CHUNK = 40
+MAX_CHUNK = 100
 
 
 def _headers(cfg: Config) -> dict[str, str]:

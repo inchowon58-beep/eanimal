@@ -35,6 +35,7 @@
     $("imageExt").value = s.image_ext || "webp";
     $("keywords").value = s.last_keywords || "";
     $("count").value = s.count || "";
+    $("chunkSize").value = s.chunk_size || "40";
     if (s.category) $("category").value = s.category;
   }
 
@@ -43,6 +44,7 @@
       category: $("category").value,
       keywords: $("keywords").value,
       count: Number($("count").value) || null,
+      chunk_size: Math.min(100, Math.max(1, Number($("chunkSize").value) || 40)),
       image_cdn: $("imageCdn").value.trim(),
       image_max: Number($("imageMax").value) || 0,
       image_ext: $("imageExt").value.trim() || "webp",
@@ -62,6 +64,7 @@
       category: $("category").value,
       last_keywords: $("keywords").value,
       count: $("count").value.trim(),
+      chunk_size: String(Math.min(100, Math.max(1, Number($("chunkSize").value) || 40))),
     };
   }
 

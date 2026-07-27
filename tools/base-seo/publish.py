@@ -21,6 +21,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-publish", action="store_true")
     parser.add_argument("--no-indexnow", action="store_true")
     parser.add_argument("--count", type=int, default=0)
+    parser.add_argument("--chunk", type=int, default=40, help="한 번 API 호출당 발행 개수 (기본 40)")
     args = parser.parse_args(argv)
 
     path = Path(args.keywords)
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> int:
             category=args.category,
             keyword_text=path.read_text(encoding="utf-8"),
             count=args.count or None,
+            chunk_size=args.chunk,
             image_cdn=args.image_cdn,
             image_max=args.image_max,
             image_ext=args.image_ext,

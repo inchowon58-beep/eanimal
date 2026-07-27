@@ -114,6 +114,13 @@ textarea { resize: vertical; line-height: 1.45; }
 }
 .row2 { grid-template-columns: 1fr 1fr; }
 .row3 { grid-template-columns: 1fr 110px 100px; align-items: end; }
+.row-kw {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 140px 150px 1fr;
+  align-items: end;
+  margin-bottom: 8px;
+}
 .checks {
   display: flex;
   flex-direction: row;
@@ -210,6 +217,6 @@ textarea { resize: vertical; line-height: 1.45; }
 .url-row .copy-one:hover { background: #f1f5f9; }
 
 @media (max-width: 720px) {
-  .row2, .row3 { grid-template-columns: 1fr; }
+  .row2, .row3, .row-kw { grid-template-columns: 1fr; }
   .top { flex-direction: column; }
 }
