@@ -5,44 +5,16 @@
       "schedule": "0 3 * * 1"
     },
     {
-      "path": "/api/cron/sync-places?mode=weekly",
-      "schedule": "0 4 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-places?mode=weekly",
-      "schedule": "0 5 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-rescues?days=21",
+      "path": "/api/cron/sync-rescues?days=7&maxPages=30",
       "schedule": "30 3 * * 1"
     },
     {
-      "path": "/api/cron/sync-travel?maxPages=40&enrich=0&startPage=1",
-      "schedule": "0 6 * * 1"
+      "path": "/api/cron/sync-travel?maxPages=30&enrich=0&startPage=1",
+      "schedule": "0 4 * * 1"
     },
     {
-      "path": "/api/cron/sync-travel?maxPages=40&enrich=0&startPage=41",
-      "schedule": "20 6 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-travel?maxPages=40&enrich=0&startPage=81",
-      "schedule": "40 6 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-travel?maxPages=40&enrich=0&startPage=121",
-      "schedule": "0 7 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-travel?maxPages=40&enrich=0&startPage=161",
-      "schedule": "20 7 * * 1"
-    },
-    {
-      "path": "/api/cron/sync-travel?maxPages=20&enrich=1&startPage=1",
-      "schedule": "40 7 * * 1"
-    },
-    {
-      "path": "/api/cron/indexnow?types=rescues,travel,guide&limit=2000",
-      "schedule": "0 8 * * 1"
+      "path": "/api/cron/indexnow?types=rescues,guide&limit=300",
+      "schedule": "30 4 * * 1"
     }
   ]
 }
