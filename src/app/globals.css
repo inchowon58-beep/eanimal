@@ -1,231 +1,58 @@
-@import "tailwindcss";
-
-:root {
-  --background: #f8faf9;
-  --foreground: #0f1a17;
-  --muted: #eef3f1;
-  --muted-fg: #5b6b66;
-  --card: #ffffff;
-  --border: #d8e3de;
-  --accent: #0f766e;
-  --accent-fg: #ffffff;
-  --ring: #14b8a6;
-  --success: #059669;
-  --danger: #be123c;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-.dark {
-  --background: #0b1210;
-  --foreground: #e8f0ed;
-  --muted: #15201c;
-  --muted-fg: #9eb0a9;
-  --card: #121c18;
-  --border: #24322c;
-  --accent: #2dd4bf;
-  --accent-fg: #042f2e;
-  --ring: #5eead4;
-  --success: #34d399;
-  --danger: #fb7185;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-muted-fg: var(--muted-fg);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-fg: var(--accent-fg);
-  --color-ring: var(--ring);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
-  --font-sans: "Pretendard Variable", "Pretendard", "IBM Plex Sans KR", system-ui, sans-serif;
-  --font-display: "IBM Plex Sans KR", "Pretendard Variable", system-ui, sans-serif;
-}
-
-* {
-  border-color: var(--border);
-}
-
-html {
-  scroll-behavior: smooth;
+html,
+body {
+  margin: 0;
+  min-height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  font-family:
+    "Pretendard",
+    "Apple SD Gothic Neo",
+    "Noto Sans KR",
+    "Malgun Gothic",
+    sans-serif;
+  background:
+    radial-gradient(900px 420px at 20% -10%, #1a3a34 0%, transparent 55%),
+    radial-gradient(700px 380px at 100% 0%, #152028 0%, transparent 50%),
+    #0b1210;
+  color: #e8f0ed;
+}
+
+.renewal {
   min-height: 100vh;
-}
-
-.seo-body p {
-  line-height: 1.85;
-  margin-bottom: 1.1rem;
-  color: var(--muted-fg);
-  font-size: 0.975rem;
-}
-
-.seo-body h2 {
-  margin-top: 2.6rem;
-  margin-bottom: 0.9rem;
-  padding-top: 1.7rem;
-  border-top: 1px solid var(--border);
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--foreground);
-}
-
-.seo-body h2:first-child {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-}
-
-.seo-body h3 {
-  margin-top: 1.6rem;
-  margin-bottom: 0.6rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--foreground);
-}
-
-.seo-body ul {
-  margin: 0 0 1.1rem 1.1rem;
-  list-style: disc;
-  color: var(--muted-fg);
-  font-size: 0.975rem;
-  line-height: 1.8;
-}
-
-.seo-body li {
-  margin-bottom: 0.35rem;
-}
-
-/* SEO 본문 이미지 레이아웃 */
-.seo-body img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 14px;
-}
-.seo-body figure {
-  margin: 1.4rem 0;
-}
-.seo-fig img {
-  max-height: 460px;
-}
-.seo-grid {
-  display: grid;
-  gap: 10px;
-  margin: 1.4rem 0;
-}
-.seo-grid.cols-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-.seo-grid.cols-3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.seo-grid figure {
-  margin: 0;
-  aspect-ratio: 4 / 3;
-}
-.seo-hero {
-  margin: 1.4rem 0;
-}
-.seo-hero-big {
-  margin: 0 0 10px;
-}
-.seo-hero-big img {
-  max-height: 440px;
-}
-.seo-hero-row {
-  display: grid;
-  gap: 10px;
-}
-.seo-hero-row.n2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-.seo-hero-row.n3 {
-  grid-template-columns: repeat(3, 1fr);
-}
-.seo-hero-row figure {
-  margin: 0;
-  aspect-ratio: 4 / 3;
-}
-.seo-side {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 22px;
-  align-items: stretch;
-  margin: 2.8rem 0 2rem;
-  padding-top: 1.9rem;
-  border-top: 1px solid var(--border);
-}
-.seo-side .seo-side-img {
-  margin: 0;
-  aspect-ratio: 4 / 3;
-  align-self: start;
-}
-.seo-side.right .seo-side-img {
-  order: 2;
-}
-.seo-side .seo-side-text {
-  margin: 0;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
 }
-.seo-side .seo-side-text p {
+
+.brand {
+  margin: 0 0 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #7dd3c7;
+}
+
+.renewal h1 {
   margin: 0;
-}
-.seo-side .seo-side-text p::first-line {
+  max-width: 18em;
+  font-size: clamp(1.45rem, 4vw, 2.1rem);
   font-weight: 700;
-  font-size: 1.12em;
-  color: var(--foreground);
+  line-height: 1.45;
+  letter-spacing: -0.02em;
 }
 
-@media (max-width: 640px) {
-  .seo-grid.cols-3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .seo-hero-row.n3 {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  /* 2열에서 마지막에 1장만 남으면 전체 폭으로 */
-  .seo-grid.cols-2 figure:last-child:nth-child(odd),
-  .seo-grid.cols-3 figure:last-child:nth-child(odd),
-  .seo-hero-row.n2 figure:last-child:nth-child(odd),
-  .seo-hero-row.n3 figure:last-child:nth-child(odd) {
-    grid-column: 1 / -1;
-  }
-  .seo-side {
-    grid-template-columns: 1fr;
-    gap: 14px;
-    margin: 2.1rem 0 1.6rem;
-    padding-top: 1.5rem;
-  }
-  .seo-side.right .seo-side-img {
-    order: 0;
-  }
-  .seo-side .seo-side-text {
-    justify-content: flex-start;
-  }
-}
-
-/* 가로 스크롤 행 (관련 글) */
-.scroll-row {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-.scroll-row::-webkit-scrollbar {
-  height: 8px;
-}
-.scroll-row::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 999px;
-}
-.scroll-row::-webkit-scrollbar-track {
-  background: transparent;
+.sub {
+  margin: 16px 0 0;
+  color: #9eb0a9;
+  font-size: 0.98rem;
 }

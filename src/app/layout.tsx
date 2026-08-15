@@ -1,30 +1,18 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
-import { SITE } from "@/lib/site";
+
+const SITE_NAME = "반려문화위원회";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.eanimal.kr";
 
 export const metadata: Metadata = {
-  title: {
-    default: SITE.name,
-    template: `%s · ${SITE.name}`,
-  },
-  description: SITE.description,
-  metadataBase: new URL(SITE.url),
-  openGraph: {
-    title: SITE.name,
-    description: SITE.description,
-    siteName: SITE.name,
-    locale: "ko_KR",
-    type: "website",
-  },
+  title: SITE_NAME,
+  description: "사이트 리뉴얼 작업 중입니다.",
+  metadataBase: new URL(SITE_URL),
+  robots: { index: false, follow: false },
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8faf9" },
-    { media: "(prefers-color-scheme: dark)", color: "#0b1210" },
-  ],
+  themeColor: "#0f1a17",
 };
 
 export default function RootLayout({
@@ -34,38 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <head>
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css"
-        />
-        <link
-          rel="stylesheet"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "WebSite",
-              name: SITE.name,
-              description: SITE.description,
-              url: SITE.url,
-              inLanguage: "ko-KR",
-            }),
-          }}
-        />
-      </head>
-      <body className="flex min-h-screen flex-col antialiased">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
